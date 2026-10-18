@@ -1,5 +1,17 @@
 // Add any additional repositories for your dependencies here.
 
 repositories {
-
+    ivy {
+        name = "GTNH Museum GitHub Releases"
+        url = uri("https://github.com/GTNH-Museum/CodeChickenLib/releases/download")
+        patternLayout {
+            artifact("[revision]/[artifact]-[revision]-[classifier].[ext]")
+        }
+        metadataSources {
+            artifact()
+        }
+        content {
+            includeModule("com.github.GTNewHorizons", "CodeChickenLib")
+        }
+    }
 }
