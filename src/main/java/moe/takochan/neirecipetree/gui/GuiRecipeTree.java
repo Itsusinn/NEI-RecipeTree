@@ -174,16 +174,10 @@ public class GuiRecipeTree extends GuiScreen {
             tempCosts.add(new CostEntry(cost.stack, effectiveAmount, true));
         }
 
-        // Layout costs centered horizontally
-        int totalCostWidth = tempCosts.size() * 24;
-        int costStartX = -totalCostWidth / 2;
+        // Layout costs centered horizontally, sized by the actual rendered text
         int costY = sectionBaseY + 15;
-        for (int i = 0; i < tempCosts.size(); i++) {
-            CostEntry tmp = tempCosts.get(i);
-            tmp.x = costStartX + i * 24;
-            tmp.y = costY;
-            costs.add(tmp);
-        }
+        costs.addAll(tempCosts);
+        layoutCostEntries(costs, costY);
 
         // Remainders section below costs
         List<CostEntry> tempRems = new ArrayList<>();
@@ -194,14 +188,35 @@ public class GuiRecipeTree extends GuiScreen {
             }
         }
 
-        int totalRemWidth = tempRems.size() * 24;
-        int remStartX = -totalRemWidth / 2;
-        int remY = costY + 45;
-        for (int i = 0; i < tempRems.size(); i++) {
-            CostEntry tmp = tempRems.get(i);
-            tmp.x = remStartX + i * 24;
-            tmp.y = remY;
-            remainderEntries.add(tmp);
+        remainderEntries.addAll(tempRems);
+        layoutCostEntries(remainderEntries, costY + 45);
+    }
+
+    private static final int COST_ICON_WIDTH = 16;
+    private static final int COST_TEXT_GAP = 2;
+    private static final int COST_ENTRY_SPACING = 8;
+
+    /**
+     * Positions cost entries sequentially using the current font metrics. Fixed-width slots break when a
+     * font renders wider glyphs (for example Angelica's custom font), causing amount text to overlap the
+     * neighbouring item icons.
+     */
+    private void layoutCostEntries(List<CostEntry> entries, int y) {
+        if (entries.isEmpty()) {
+            return;
+        }
+
+        int totalWidth = COST_ENTRY_SPACING * (entries.size() - 1);
+        for (CostEntry entry : entries) {
+            entry.width = COST_ICON_WIDTH + COST_TEXT_GAP + fontRendererObj.getStringWidth(getCostAmountText(entry));
+            totalWidth += entry.width;
+        }
+
+        int cursor = -totalWidth / 2;
+        for (CostEntry entry : entries) {
+            entry.x = cursor + COST_ICON_WIDTH / 2;
+            entry.y = y;
+            cursor += entry.width + COST_ENTRY_SPACING;
         }
     }
 
@@ -413,7 +428,7 @@ public class GuiRecipeTree extends GuiScreen {
             TreeRenderer.drawCenteredText(0, sectionBaseY, costTitle, 0xFFFFAA00);
             for (CostEntry cost : costs) {
                 drawCostEntry(cost);
-                if (interactive && worldMouseX >= cost.x - 8 && worldMouseX < cost.x + 16
+                if (interactive && worldMouseX >= cost.x - 8 && worldMouseX < cost.x - 8 + cost.width
                     && worldMouseY >= cost.y
                     && worldMouseY < cost.y + 16) {
                     hoveredCost = cost;
@@ -428,7 +443,7 @@ public class GuiRecipeTree extends GuiScreen {
             TreeRenderer.drawCenteredText(0, remHeaderY, remTitle, 0xFF888888);
             for (CostEntry rem : remainderEntries) {
                 drawCostEntry(rem);
-                if (interactive && worldMouseX >= rem.x - 8 && worldMouseX < rem.x + 16
+                if (interactive && worldMouseX >= rem.x - 8 && worldMouseX < rem.x - 8 + rem.width
                     && worldMouseY >= rem.y
                     && worldMouseY < rem.y + 16) {
                     hoveredCost = rem;
@@ -1141,9 +1156,7 @@ public class GuiRecipeTree extends GuiScreen {
             int titleWidth = fontRendererObj.getStringWidth(costTitle);
             bounds.include(-titleWidth / 2, sectionBaseY, titleWidth / 2, sectionBaseY + fontRendererObj.FONT_HEIGHT);
             for (CostEntry cost : costs) {
-                String amountText = getCostAmountText(cost);
-                int amountWidth = fontRendererObj.getStringWidth(amountText);
-                bounds.include(cost.x - 8, cost.y, cost.x + 10 + amountWidth, cost.y + 16);
+                bounds.include(cost.x - 8, cost.y, cost.x - 8 + cost.width, cost.y + 16);
             }
         }
 
@@ -1154,9 +1167,7 @@ public class GuiRecipeTree extends GuiScreen {
             int remTitleWidth = fontRendererObj.getStringWidth(remTitle);
             bounds.include(-remTitleWidth / 2, remHeaderY, remTitleWidth / 2, remHeaderY + fontRendererObj.FONT_HEIGHT);
             for (CostEntry rem : remainderEntries) {
-                String amountText = getCostAmountText(rem);
-                int amountWidth = fontRendererObj.getStringWidth(amountText);
-                bounds.include(rem.x - 8, rem.y, rem.x + 10 + amountWidth, rem.y + 16);
+                bounds.include(rem.x - 8, rem.y, rem.x - 8 + rem.width, rem.y + 16);
             }
         }
 
@@ -1301,6 +1312,7 @@ public class GuiRecipeTree extends GuiScreen {
         public final boolean chanced;
         public int x;
         public int y;
+        public int width;
 
         public CostEntry(ItemStack stack, long amount, boolean chanced) {
             this.stack = stack;
