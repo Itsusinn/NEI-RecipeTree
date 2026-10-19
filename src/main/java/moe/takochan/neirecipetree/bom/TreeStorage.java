@@ -37,7 +37,7 @@ public final class TreeStorage {
 
     private static final Logger LOG = LogManager.getLogger("neirecipetree");
     private static final String FILE_NAME = "neirecipetree_trees.dat";
-    private static final int FORMAT_VERSION = 6;
+    private static final int FORMAT_VERSION = 7;
     private static final int NBT_COMPOUND = 10;
 
     /** Which screen the inventory button should reopen after the player closes the GUI. */
@@ -86,11 +86,13 @@ public final class TreeStorage {
         final ItemStack goal;
         final long batches;
         final List<PendingResolution> resolutions;
+        final List<ItemStack> removedMaterials;
 
-        SavedTree(ItemStack goal, long batches, List<PendingResolution> resolutions) {
+        SavedTree(ItemStack goal, long batches, List<PendingResolution> resolutions, List<ItemStack> removedMaterials) {
             this.goal = goal;
             this.batches = batches;
             this.resolutions = resolutions;
+            this.removedMaterials = removedMaterials;
         }
     }
 
@@ -150,6 +152,12 @@ public final class TreeStorage {
         for (SavedTree saved : data.trees) {
             MaterialTree tree = new MaterialTree(saved.goal, false);
             tree.batches = saved.batches;
+            for (ItemStack removed : saved.removedMaterials) {
+                ItemStackKey key = ItemStackKey.of(removed);
+                if (key != null) {
+                    tree.removedMaterials.add(key);
+                }
+            }
             if (!saved.resolutions.isEmpty()) {
                 pendingResolutions.put(tree, saved.resolutions);
             }
@@ -197,7 +205,8 @@ public final class TreeStorage {
                     new SavedTree(
                         goal,
                         Math.max(1L, entry.getLong("batches")),
-                        readResolutions(entry.getTagList("resolutions", NBT_COMPOUND))));
+                        readResolutions(entry.getTagList("resolutions", NBT_COMPOUND)),
+                        readRemovedMaterials(entry.getTagList("removed", NBT_COMPOUND))));
             }
             return new TreeSnapshot(
                 trees,
@@ -207,6 +216,17 @@ public final class TreeStorage {
             LOG.warn("Could not read {}: {}", source, e.toString());
             return null;
         }
+    }
+
+    private static List<ItemStack> readRemovedMaterials(NBTTagList entries) {
+        List<ItemStack> removed = new ArrayList<>();
+        for (int i = 0; i < entries.tagCount(); i++) {
+            ItemStack stack = readStack(entries.getCompoundTagAt(i));
+            if (stack != null && stack.getItem() != null) {
+                removed.add(stack);
+            }
+        }
+        return removed;
     }
 
     private static List<PendingResolution> readResolutions(NBTTagList entries) {
@@ -406,6 +426,14 @@ public final class TreeStorage {
                 entry.setTag("goal", goal);
                 entry.setLong("batches", Math.max(1L, tree.batches));
                 entry.setTag("resolutions", resolutionTags);
+
+                NBTTagList removedTags = new NBTTagList();
+                for (ItemStackKey key : tree.removedMaterials) {
+                    if (key != null) {
+                        removedTags.appendTag(writeStack(key.toItemStack()));
+                    }
+                }
+                entry.setTag("removed", removedTags);
                 entries.appendTag(entry);
             }
             root.setTag("trees", entries);

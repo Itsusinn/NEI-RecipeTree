@@ -1143,15 +1143,11 @@ public class GuiRecipeTree extends GuiScreen {
             TreeStorage.setLastView(TreeStorage.View.TREE);
             mc.displayGuiScreen(null);
             mc.setIngameFocus();
-        } else if (keyCode == 211) { // DELETE key
-            if (isShiftKeyDown()) {
-                // Shift+Delete: drop this tree from the manager and close
-                BoM.removeTree(BoM.tree);
-                TreeStorage.setLastView(TreeStorage.View.SELECTOR);
-                mc.displayGuiScreen(parentScreen);
-            } else {
-                // Delete: reset all resolutions (keep root recipe)
-                resetTree();
+        } else if (keyCode == Keyboard.KEY_DELETE) {
+            // Delete the material under the cursor, together with its branch.
+            if (hoveredNode != null && BoM.tree != null && BoM.tree.removeMaterial(hoveredNode.materialNode)) {
+                recalculateTree();
+                TreeStorage.save();
             }
         }
     }
@@ -1161,25 +1157,6 @@ public class GuiRecipeTree extends GuiScreen {
         TreeStorage.setLastView(TreeStorage.View.SELECTOR);
         GuiScreen selector = parentScreen instanceof GuiTreeManager ? parentScreen : new GuiTreeManager(parentScreen);
         mc.displayGuiScreen(selector);
-    }
-
-    private void resetTree() {
-        if (BoM.tree == null) return;
-        NEIRecipeRef rootRecipe = BoM.tree.goal.recipe;
-        BoM.tree.resolutions.clear();
-        BoM.addedRecipes.clear();
-        BoM.userExpandedNodes.clear();
-        BoM.defaultRecipes.clear();
-        BoM.recipeIndices.clear();
-        // Re-add root recipe
-        if (rootRecipe != null) {
-            ItemStackKey rootKey = ItemStackKey.of(BoM.tree.goal.ingredient);
-            if (rootKey != null) {
-                BoM.tree.resolutions.put(rootKey, rootRecipe);
-            }
-        }
-        recalculateTree();
-        TreeStorage.save();
     }
 
     /**

@@ -32,6 +32,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - 总材料成本与副产物优先按物品 ID、损伤值排序，流体始终排在最后，列表不会随哈希顺序跳动
 - 液体按体积（`L` / mB）统计，同一液体的多处需求合并为一行
 - 支持折叠 / 展开节点，保留用户手动选择的分解路径
+- 悬停材料按 `Del` 可将其从树和总材料成本中删除，删除记录随该树保存
 - 右上角快捷操作：
   - 返回合成树列表
   - 导出到 NEI 收藏夹
@@ -79,12 +80,11 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 | `Ctrl + 左键` | 在当前槽位的可替换物品之间切换（`Ctrl + Shift + 左键` 反向）；选择会被记住并写入 `config/neirecipetree_alternatives.dat`，切回该槽位的首个物品即清除对应记忆 |
 | `右键` | 折叠 / 展开当前节点 |
 | `Shift + 右键` | 清除当前节点的配方选择 |
-| `Del` | 重置整棵树 |
+| `Del` | 删除当前悬停的材料及其分支，并从总材料成本中排除；删除状态随该树保存 |
 | `Esc` | 直接关闭配方树界面，返回游戏 |
 | `E` | 直接关闭配方树界面，返回游戏 |
 | `右上角列表按钮` | 返回合成树列表 |
 | `鼠标后退键` | 返回合成树列表 |
-| `Shift + Del` | 关闭界面 |
 | `滚轮（批次面板）` | 数量 `±1` |
 | `Shift + 滚轮（批次面板）` | 数量 `±16` |
 | `Ctrl + 滚轮（批次面板）` | 数量 `×2 / ÷2` |
@@ -156,6 +156,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 - Total cost and remainder rows are ordered by item id and damage, with fluids always placed last, so they no longer follow the hash order of the cost maps
 - Fluids are counted by volume (`L` / mB) and every request for the same fluid is merged into one row
 - Collapse / expand nodes while preserving manual recipe choices
+- Hover a material and press `Del` to remove it from the tree and total cost; removals are saved with that tree
 - Quick actions in the top-right corner:
   - return to the tree list
   - export to NEI bookmarks
@@ -203,12 +204,11 @@ The button stays visible even when the list is empty, so a tree can always be st
 | `Ctrl + LMB` | Switch the selected alternative of the slot (`Ctrl + Shift + LMB` for the previous one); the pick is remembered in `config/neirecipetree_alternatives.dat` and cleared by switching back to the slot's first item |
 | `RMB` | Collapse / expand the current node |
 | `Shift + RMB` | Clear the current node's recipe selection |
-| `Del` | Reset the entire tree |
+| `Del` | Remove the hovered material and its branch from the tree and the total cost; removals are saved with the tree |
 | `Esc` | Close the recipe tree screen and return to the game |
 | `E` | Close the recipe tree screen and return to the game |
 | `List button (top right)` | Return to the tree list |
 | `Mouse back` | Return to the tree list |
-| `Shift + Del` | Close the screen |
 | `Mouse wheel (batch panel)` | Change amount by `±1` |
 | `Shift + mouse wheel (batch panel)` | Change amount by `±16` |
 | `Ctrl + mouse wheel (batch panel)` | Change amount by `×2 / ÷2` |

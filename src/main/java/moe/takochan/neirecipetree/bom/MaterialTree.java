@@ -1,10 +1,13 @@
 package moe.takochan.neirecipetree.bom;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.item.ItemStack;
 
+import moe.takochan.neirecipetree.recipe.FluidStacks;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
 
@@ -13,6 +16,8 @@ public class MaterialTree {
     public MaterialNode goal;
     public TreeCost cost = new TreeCost();
     public Map<ItemStackKey, NEIRecipeRef> resolutions = new HashMap<>();
+    /** Materials the player removed from this tree; they stay out of the layout and total cost. */
+    public Set<ItemStackKey> removedMaterials = new HashSet<>();
     public long batches = 1;
 
     public MaterialTree(NEIRecipeRef recipe) {
@@ -80,6 +85,43 @@ public class MaterialTree {
 
     public void recalculate() {
         goal.recalculate(this);
+        pruneRemoved(goal);
+    }
+
+    /**
+     * Removes {@code node} from this tree. The material is remembered by item key, so every
+     * occurrence of it disappears and it is left out of the total cost.
+     *
+     * @return {@code true} when the material was not already removed
+     */
+    public boolean removeMaterial(MaterialNode node) {
+        if (node == null || node == goal) {
+            return false;
+        }
+        ItemStackKey key = materialKey(node.ingredient);
+        if (key == null || !removedMaterials.add(key)) {
+            return false;
+        }
+        recalculate();
+        return true;
+    }
+
+    private void pruneRemoved(MaterialNode node) {
+        if (node.children == null) {
+            return;
+        }
+        node.children.removeIf(child -> {
+            ItemStackKey key = materialKey(child.ingredient);
+            return key != null && removedMaterials.contains(key);
+        });
+        for (MaterialNode child : node.children) {
+            pruneRemoved(child);
+        }
+    }
+
+    /** Fluid volumes are ignored so removing one fluid also hides the same fluid from other recipes. */
+    private static ItemStackKey materialKey(ItemStack stack) {
+        return ItemStackKey.of(FluidStacks.aggregationKey(stack));
     }
 
     public void calculateCost() {
