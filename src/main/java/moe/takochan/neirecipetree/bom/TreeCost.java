@@ -186,8 +186,10 @@ public class TreeCost {
         NEIRecipeRef recipe = node.recipe;
         long original = amount;
 
-        // Try to use remainders first
-        for (ItemStack permStack : node.permutations) {
+        // Try to use remainders first. Every alternative of the slot satisfies the requirement, so
+        // start with the one the node actually shows and fall back to the rest afterwards.
+        for (int i = 0; i < node.permutations.length; i++) {
+            ItemStack permStack = node.permutations[(node.permutationIndex + i) % node.permutations.length];
             if (chance.chanced()) {
                 double desired = amount * chance.chance();
                 double given = getChancedRemainder(permStack, desired, catalyst, chance);

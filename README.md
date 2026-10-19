@@ -26,6 +26,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 
 - 在 NEI 配方界面直接打开当前物品的合成树
 - 对同一产物在多种候选配方之间切换，并将选择回写到整棵树
+- 同一配方槽位存在多个可替换物品时，自动选用可分解的那个，并支持手动切换
 - 递归展开材料需求，汇总总材料成本
 - 支持折叠 / 展开节点，保留用户手动选择的分解路径
 - 右上角快捷导出：
@@ -34,6 +35,11 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - 批次面板支持快速调整数量并自动推荐合适批次
 - 悬停物品框时高亮当前节点、直连连线和下一级子节点
 - 悬停左上角配方角标时显示该节点的配方预览
+
+### 本分支的修复
+
+- **字体宽度渲染修复**：总成本行与副产物行原先按固定 `24px` 槽位排布，数量文字也用固定偏移绘制；遇到字宽更大的字体（例如 Angelica 的自定义字体）时，数量会被压到相邻物品图标上。现在每一项先用 `FontRenderer#getStringWidth` 实测宽度再顺序排布，导出图片的边界计算与悬停判定也复用同一宽度，不再重叠。
+- **可替换物品（多候选槽位）**：NEI 在 `PositionedStack.items` 中给出槽位的全部候选物品，旧实现只取第一项。当第一项本身没有配方时，节点会误判为原材料；现在会自动回退到可分解的候选，并支持手动切换（见上方“主要功能”）。
 
 ### 使用方式
 
@@ -52,6 +58,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 | --- | --- |
 | `左键` | 浏览并选择当前节点的配方 |
 | `Shift + 左键` | 自动选择第一个匹配配方 |
+| `Ctrl + 左键` | 在当前槽位的可替换物品之间切换（`Ctrl + Shift + 左键` 反向） |
 | `右键` | 折叠 / 展开当前节点 |
 | `Shift + 右键` | 清除当前节点的配方选择 |
 | `Del` | 重置整棵树 |
@@ -118,6 +125,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 
 - Open a full recipe tree directly from an NEI recipe page
 - Switch between multiple valid recipes for the same output and apply the selection back into the tree
+- Recipe slots that accept several substitutable items fall back to a decomposable one and can be switched manually
 - Recursively expand ingredient requirements and calculate total material cost
 - Collapse / expand nodes while preserving manual recipe choices
 - Quick actions in the top-right corner:
@@ -126,6 +134,11 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 - Batch panel for fast quantity changes and ideal-batch selection
 - Hovering an item frame highlights the node itself, its connected lines, and its direct children
 - Hovering the small recipe badge in the top-left shows the recipe preview for that node
+
+### Fixes in this fork
+
+- **Font width rendering**: the total cost and remainder rows used to be laid out in fixed `24px` slots with fixed text offsets, so wider fonts (for example Angelica's custom font) made the amounts overlap the neighbouring item icons. Every entry is now measured with `FontRenderer#getStringWidth` and spaced sequentially, and both the exported image bounds and the hover hitboxes reuse that measured width.
+- **Substitutable items (multi-candidate slots)**: NEI reports every candidate of a slot in `PositionedStack.items`, but the tree used to keep only the first entry, so a slot whose first candidate has no recipe was mistaken for a raw material. The tree now falls back to a decomposable candidate and lets you switch between them (see *Features*).
 
 ### Usage
 
@@ -144,6 +157,7 @@ If an item has multiple valid recipes, you can either:
 | --- | --- |
 | `LMB` | Browse and choose a recipe for the current node |
 | `Shift + LMB` | Auto-select the first matching recipe |
+| `Ctrl + LMB` | Switch the selected alternative of the slot (`Ctrl + Shift + LMB` for the previous one) |
 | `RMB` | Collapse / expand the current node |
 | `Shift + RMB` | Clear the current node's recipe selection |
 | `Del` | Reset the entire tree |

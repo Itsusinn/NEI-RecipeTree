@@ -64,6 +64,9 @@ public class GuiRecipeTree extends GuiScreen {
     private static final float TRACE_HIGHLIGHT_STRENGTH = 0.65F;
     private static final float CHILD_HIGHLIGHT_STRENGTH = 0.55F;
     private static final int ITEM_HIGHLIGHT_COLOR = 0xFFF4F0B8;
+    private static final int ALTERNATIVES_MARKER_COLOR = 0xFF55CCFF;
+    /** How many substitutable items are listed in a node tooltip before the rest is summarized. */
+    private static final int ALTERNATIVE_TOOLTIP_LINES = 4;
     private static final int ACTION_BUTTON_SIZE = 18;
     private static final int ACTION_BUTTON_GAP = 4;
     private static final int ACTION_BUTTON_MARGIN = 4;
@@ -291,7 +294,8 @@ public class GuiRecipeTree extends GuiScreen {
         String[] lines = new String[] { StatCollector.translateToLocal("neirecipetree.help.line1"),
             StatCollector.translateToLocal("neirecipetree.help.line2"),
             StatCollector.translateToLocal("neirecipetree.help.line3"),
-            StatCollector.translateToLocal("neirecipetree.help.line4") };
+            StatCollector.translateToLocal("neirecipetree.help.line4"),
+            StatCollector.translateToLocal("neirecipetree.help.line5") };
         float lineHeight = fontRendererObj.FONT_HEIGHT * SMALL_TEXT_SCALE + 1.0F;
         int boxWidth = 0;
         for (String line : lines) {
@@ -478,9 +482,8 @@ public class GuiRecipeTree extends GuiScreen {
 
     private void drawNodeTooltip(TreeNode treeNode, int mouseX, int mouseY) {
         MaterialNode mn = treeNode.materialNode;
-        ItemStack displayStack = getDisplayStack(mn);
         List<String> tooltip = new ArrayList<>();
-        tooltip.addAll(displayStack.getTooltip(mc.thePlayer, mc.gameSettings.advancedItemTooltips));
+        tooltip.addAll(mn.ingredient.getTooltip(mc.thePlayer, mc.gameSettings.advancedItemTooltips));
 
         if (treeNode.amount > 1) {
             tooltip.add(
@@ -512,7 +515,54 @@ public class GuiRecipeTree extends GuiScreen {
             }
         }
 
+        if (mn.hasAlternatives()) {
+            tooltip.addAll(getAlternativesTooltip(mn));
+        }
+
         drawHoveringText(tooltip, mouseX, mouseY, fontRendererObj);
+    }
+
+    /**
+     * Whether a node's slot warrants the "alternatives available" marker: either the node is stuck
+     * on an item without a recipe, or it is already showing a substitute instead of the slot's
+     * primary item.
+     */
+    private boolean shouldMarkAlternatives(MaterialNode mn) {
+        return mn.hasAlternatives() && (mn.recipe == null || mn.permutationIndex != 0);
+    }
+
+    /**
+     * Describes the substitutable items of a slot and which one the node currently stands for.
+     */
+    private List<String> getAlternativesTooltip(MaterialNode mn) {
+        List<String> lines = new ArrayList<>();
+        lines.add(
+            "\u00a7b" + StatCollector.translateToLocalFormatted(
+                "neirecipetree.tooltip.alternatives",
+                mn.permutationIndex + 1,
+                mn.permutations.length));
+
+        // Only spell the list out when it matters, otherwise the tooltip repeats itself on every
+        // ore-dictionary slot of the tree.
+        if (shouldMarkAlternatives(mn)) {
+            int shown = 0;
+            for (int i = 0; i < mn.permutations.length && shown < ALTERNATIVE_TOOLTIP_LINES; i++) {
+                if (i == mn.permutationIndex) continue;
+                ItemStack alternative = mn.permutations[i];
+                if (alternative == null || alternative.getItem() == null) continue;
+                lines.add("\u00a78 - " + alternative.getDisplayName());
+                shown++;
+            }
+            int remaining = Math.max(0, mn.permutations.length - 1 - shown);
+            if (remaining > 0) {
+                lines.add(
+                    "\u00a78" + StatCollector
+                        .translateToLocalFormatted("neirecipetree.tooltip.alternatives_more", remaining));
+            }
+        }
+
+        lines.add("\u00a78" + StatCollector.translateToLocal("neirecipetree.tooltip.alternatives_hint"));
+        return lines;
     }
 
     private void drawRecipeTooltip(TreeNode treeNode, int mouseX, int mouseY) {
@@ -724,8 +774,16 @@ public class GuiRecipeTree extends GuiScreen {
         }
 
         // Item icon with EMI-style amount overlay
-        ItemStack displayStack = getDisplayStack(mn);
-        TreeRenderer.drawItemStack(itemIconX, itemIconY, displayStack, getNodeAmountText(node));
+        TreeRenderer.drawItemStack(itemIconX, itemIconY, mn.ingredient, getNodeAmountText(node));
+        if (shouldMarkAlternatives(mn)) {
+            // Marker for "this slot also accepts other items" (see Ctrl+LMB)
+            TreeRenderer.drawNodeBackground(
+                itemIconX,
+                y + TreeNode.FRAME_HEIGHT - 2,
+                TreeNode.ICON_SIZE,
+                1,
+                ALTERNATIVES_MARKER_COLOR);
+        }
         if (highlightItem) {
             TreeRenderer.drawNodeBorder(
                 itemIconX - 1,
@@ -762,19 +820,6 @@ public class GuiRecipeTree extends GuiScreen {
 
     private String getCostAmountText(CostEntry cost) {
         return cost.chanced ? "~" + cost.amount : String.valueOf(cost.amount);
-    }
-
-    /**
-     * Get the currently displayed ItemStack for a node, cycling through permutations like EMI.
-     * Uses system time to cycle through alternatives every 1 second.
-     */
-    private ItemStack getDisplayStack(MaterialNode mn) {
-        if (mn.permutations == null || mn.permutations.length <= 1) {
-            return mn.ingredient;
-        }
-        int index = (int) (System.currentTimeMillis() / 1000 % mn.permutations.length);
-        ItemStack display = mn.permutations[index];
-        return display != null ? display : mn.ingredient;
     }
 
     /**
@@ -877,7 +922,14 @@ public class GuiRecipeTree extends GuiScreen {
             }
 
             if (mouseButton == 0 && hoveredNodeArea == HoverArea.ITEM) {
-                if (isShiftKeyDown()) {
+                if (isCtrlKeyDown() && mn.hasAlternatives()) {
+                    // Ctrl+LMB: this slot accepts substitutes, switch which one the node stands for
+                    // (Ctrl+Shift+LMB walks the alternatives backwards)
+                    if (mn.cyclePermutation(isShiftKeyDown())) {
+                        mn.state = FoldState.EXPANDED;
+                        recalculateTree();
+                    }
+                } else if (isShiftKeyDown()) {
                     // Shift+LMB: auto-resolve with first available recipe (EMI's getAutoResolutions)
                     NEIRecipeRef found = RecipeLookup.findFirstRecipe(mn.ingredient);
                     if (found != null) {

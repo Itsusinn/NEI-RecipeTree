@@ -27,7 +27,9 @@ public class RecipeAdapter {
         if (ps == null || ps.items == null) return new ItemStack[0];
         ItemStack[] result = new ItemStack[ps.items.length];
         for (int i = 0; i < ps.items.length; i++) {
-            result[i] = ps.items[i].copy();
+            // NEI occasionally reports empty entries for ore dictionary slots; keep the shape of the
+            // array but never hand a null stack out as a selectable alternative.
+            result[i] = ps.items[i] != null ? ps.items[i].copy() : null;
         }
         return result;
     }
