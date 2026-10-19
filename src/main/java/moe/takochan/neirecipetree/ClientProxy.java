@@ -20,10 +20,8 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void init(FMLInitializationEvent event) {
         super.init(event);
-        // Items are registered by now, so the saved alternative choices can be resolved
-        AlternativePreferences.load();
-        // Trees are restored lazily when the player first opens the inventory, after the server's
-        // item id mapping is in place
+        // Alternative choices are loaded lazily together with the tree store, when the player first
+        // opens the inventory
         MinecraftForge.EVENT_BUS.register(new InventoryTreeButtonHandler());
     }
 }

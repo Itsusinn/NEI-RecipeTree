@@ -22,18 +22,19 @@ import moe.takochan.neirecipetree.recipe.ItemStackKey;
  * Choices are keyed by the slot's primary item, so every recipe offering the same slot (and every
  * tree rebuilt later on) reuses the pick instead of falling back to the first alternative. Picking
  * the primary item again forgets the entry, and the whole map is written to the config directory so
- * the preference survives a restart. Stacks are stored by registry name as well as by numeric id,
- * because GTNH's EndlessIDs can remap item ids between sessions.
+ * the preference survives a restart. Stacks are stored by registry name, because GTNH's EndlessIDs
+ * can remap numeric item ids between sessions.
  */
 public final class AlternativePreferences {
 
     private static final Logger LOG = LogManager.getLogger("neirecipetree");
     private static final String FILE_NAME = "neirecipetree_alternatives.dat";
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = 3;
     private static final int NBT_COMPOUND = 10;
 
     private static final Map<ItemStackKey, ItemStackKey> choices = new HashMap<>();
     private static File file;
+    private static boolean loaded;
 
     private AlternativePreferences() {}
 
@@ -52,6 +53,7 @@ public final class AlternativePreferences {
      * no usable preference.
      */
     public static int findRemembered(ItemStack[] permutations) {
+        load();
         if (permutations == null || permutations.length <= 1 || choices.isEmpty()) {
             return -1;
         }
@@ -86,6 +88,8 @@ public final class AlternativePreferences {
         if (permutations == null || permutations.length <= 1 || chosenIndex < 0 || chosenIndex >= permutations.length) {
             return;
         }
+        // Load first: saving below rewrites the whole file, so an unread store would be wiped.
+        load();
         ItemStackKey slot = keyOf(permutations[0]);
         if (slot == null) {
             return;
@@ -103,6 +107,7 @@ public final class AlternativePreferences {
     }
 
     public static void forgetAll() {
+        load();
         if (choices.isEmpty()) {
             return;
         }
@@ -119,10 +124,13 @@ public final class AlternativePreferences {
     }
 
     /**
-     * Reads the stored choices. Called from the init phase, once every mod's items are registered,
-     * because entries reference items by id.
+     * Reads the stored choices once, lazily, alongside the tree store.
      */
     public static void load() {
+        if (loaded) {
+            return;
+        }
+        loaded = true;
         File source = file;
         if (source == null || !source.isFile()) {
             return;
@@ -130,7 +138,7 @@ public final class AlternativePreferences {
         try {
             NBTTagCompound root = CompressedStreamTools.read(source);
             NBTTagList entries = root.getTagList("entries", NBT_COMPOUND);
-            int loaded = 0;
+            int loadedEntries = 0;
             for (int i = 0; i < entries.tagCount(); i++) {
                 NBTTagCompound entry = entries.getCompoundTagAt(i);
                 ItemStack slot = TreeStorage.readStack(entry.getCompoundTag("slot"));
@@ -143,11 +151,11 @@ public final class AlternativePreferences {
                 ItemStackKey chosenKey = keyOf(chosen);
                 if (slotKey != null && chosenKey != null) {
                     choices.put(slotKey, chosenKey);
-                    loaded++;
+                    loadedEntries++;
                 }
             }
-            if (loaded > 0) {
-                LOG.info("Loaded {} remembered alternative choice(s)", loaded);
+            if (loadedEntries > 0) {
+                LOG.info("Loaded {} remembered alternative choice(s)", loadedEntries);
             }
         } catch (Exception e) {
             LOG.warn("Could not read {}: {}", source, e.toString());
