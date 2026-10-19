@@ -128,7 +128,7 @@ public final class TreeStorage {
     /**
      * Reads a stack written by this version or by the old numeric-id format.
      */
-    private static ItemStack readStack(NBTTagCompound tag) {
+    static ItemStack readStack(NBTTagCompound tag) {
         String name = tag.getString("name");
         if (!name.isEmpty()) {
             Object registered = Item.itemRegistry.getObject(name);
@@ -295,7 +295,7 @@ public final class TreeStorage {
         }
     }
 
-    private static NBTTagCompound writeStack(ItemStack stack) {
+    static NBTTagCompound writeStack(ItemStack stack) {
         NBTTagCompound tag = new NBTTagCompound();
         // Keep the numeric fields too, so a registry name that disappeared in a later session can
         // still fall back to the old loader

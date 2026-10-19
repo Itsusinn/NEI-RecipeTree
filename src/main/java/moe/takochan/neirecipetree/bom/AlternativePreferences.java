@@ -22,13 +22,14 @@ import moe.takochan.neirecipetree.recipe.ItemStackKey;
  * Choices are keyed by the slot's primary item, so every recipe offering the same slot (and every
  * tree rebuilt later on) reuses the pick instead of falling back to the first alternative. Picking
  * the primary item again forgets the entry, and the whole map is written to the config directory so
- * the preference survives a restart.
+ * the preference survives a restart. Stacks are stored by registry name as well as by numeric id,
+ * because GTNH's EndlessIDs can remap item ids between sessions.
  */
 public final class AlternativePreferences {
 
     private static final Logger LOG = LogManager.getLogger("neirecipetree");
     private static final String FILE_NAME = "neirecipetree_alternatives.dat";
-    private static final int FORMAT_VERSION = 1;
+    private static final int FORMAT_VERSION = 2;
     private static final int NBT_COMPOUND = 10;
 
     private static final Map<ItemStackKey, ItemStackKey> choices = new HashMap<>();
@@ -60,9 +61,20 @@ public final class AlternativePreferences {
         }
         for (int i = 0; i < permutations.length; i++) {
             if (wanted.equals(keyOf(permutations[i]))) {
+                if (i > 0) {
+                    LOG.debug(
+                        "Restored alternative {} for slot {}",
+                        permutations[i].getDisplayName(),
+                        permutations[0].getDisplayName());
+                }
                 return i;
             }
         }
+        LOG.debug(
+            "No remembered alternative {} in slot {}",
+            wanted.toItemStack()
+                .getDisplayName(),
+            permutations[0].getDisplayName());
         return -1;
     }
 
@@ -121,8 +133,8 @@ public final class AlternativePreferences {
             int loaded = 0;
             for (int i = 0; i < entries.tagCount(); i++) {
                 NBTTagCompound entry = entries.getCompoundTagAt(i);
-                ItemStack slot = ItemStack.loadItemStackFromNBT(entry.getCompoundTag("slot"));
-                ItemStack chosen = ItemStack.loadItemStackFromNBT(entry.getCompoundTag("chosen"));
+                ItemStack slot = TreeStorage.readStack(entry.getCompoundTag("slot"));
+                ItemStack chosen = TreeStorage.readStack(entry.getCompoundTag("chosen"));
                 if (slot == null || chosen == null) {
                     // The item no longer exists, for example after a mod was removed
                     continue;
@@ -155,14 +167,14 @@ public final class AlternativePreferences {
                 NBTTagCompound entry = new NBTTagCompound();
                 entry.setTag(
                     "slot",
-                    choice.getKey()
-                        .toItemStack()
-                        .writeToNBT(new NBTTagCompound()));
+                    TreeStorage.writeStack(
+                        choice.getKey()
+                            .toItemStack()));
                 entry.setTag(
                     "chosen",
-                    choice.getValue()
-                        .toItemStack()
-                        .writeToNBT(new NBTTagCompound()));
+                    TreeStorage.writeStack(
+                        choice.getValue()
+                            .toItemStack()));
                 entries.appendTag(entry);
             }
             root.setTag("entries", entries);
