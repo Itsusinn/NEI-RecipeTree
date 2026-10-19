@@ -1,7 +1,9 @@
 neirecipetree.button.tooltip=查看合成树
 neirecipetree.button.description=递归展开所有原材料
 neirecipetree.button.inventory=合成树管理
-neirecipetree.button.inventory.desc=左键打开上次界面；中键在游戏或容器界面直接打开当前合成树
+neirecipetree.button.inventory.desc=重新打开上次的合成树或合成树列表
+key.categories.neirecipetree=合成树
+key.neirecipetree.open_tree=打开合成树（仅世界内）
 neirecipetree.tree_manager.title=合成树管理
 neirecipetree.tree_manager.empty=还没有合成树
 neirecipetree.tree_manager.new=新建

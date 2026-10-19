@@ -1,7 +1,9 @@
 neirecipetree.button.tooltip=View Recipe Tree
 neirecipetree.button.description=Expand all ingredients recursively
 neirecipetree.button.inventory=Recipe Trees
-neirecipetree.button.inventory.desc=LMB: reopen the last view; MMB: open the active tree in the world or a container
+neirecipetree.button.inventory.desc=Reopen the last recipe tree or the tree list
+key.categories.neirecipetree=Recipe Tree
+key.neirecipetree.open_tree=Open Recipe Tree (world only)
 neirecipetree.tree_manager.title=Recipe Trees
 neirecipetree.tree_manager.empty=No recipe tree yet
 neirecipetree.tree_manager.new=New

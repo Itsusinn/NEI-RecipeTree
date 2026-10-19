@@ -1137,7 +1137,7 @@ public class GuiRecipeTree extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
-        if (isCtrlKeyDown() && keyCode == Keyboard.KEY_Z) {
+        if ((keyCode == Keyboard.KEY_Z || typedChar == 26) && isCtrlKeyDown()) {
             if (BoM.tree != null && BoM.tree.restoreLastRemovedMaterial()) {
                 recalculateTree();
                 TreeStorage.save();

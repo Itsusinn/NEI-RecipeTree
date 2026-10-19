@@ -71,7 +71,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 
 列表为空时按钮仍然显示，方便直接新建；已打开的树和上次关闭的界面状态保存在 `config/neirecipetree_trees.dat`，重启游戏后按钮会继续打开当时的合成树或列表。NEI 配方页的 `T` 按钮会追加一棵树而不是替换当前树；已存在完全相同目标的树时直接切换过去。
 
-另外，在游戏世界或任意容器界面按**鼠标中键**，可以直接打开当前合成树；没有合成树时不会拦截原版中键功能。
+另外，在游戏世界内按**配置的快捷键**（默认鼠标中键）可以直接打开当前合成树。快捷键可以在 `选项 → 控制 → 合成树` 中修改；容器界面内不注册该快捷键，避免与中键整理冲突。没有合成树时不会拦截原版中键功能。
 
 #### 2. 界面操作
 
@@ -84,7 +84,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 | `Shift + 右键` | 清除当前节点的配方选择 |
 | `Del` | 删除当前悬停的材料及其分支，并从总材料成本中排除；删除状态随该树保存 |
 | `Ctrl + Z` | 恢复最近一次删除的材料，可连续按下逐项恢复 |
-| `鼠标中键（世界/容器界面）` | 直接打开当前合成树 |
+| `打开合成树快捷键（默认鼠标中键，仅世界内）` | 直接打开当前合成树；可在 `选项 → 控制 → 合成树` 中修改 |
 | `Esc` | 直接关闭配方树界面，返回游戏 |
 | `E` | 直接关闭配方树界面，返回游戏 |
 | `右上角列表按钮` | 返回合成树列表 |
@@ -199,7 +199,7 @@ Once a tree exists, opening your inventory shows a button at the bottom-left (le
 
 The button stays visible even when the list is empty, so a tree can always be started; opened trees and the last closed view are stored in `config/neirecipetree_trees.dat`, so after a restart the button still reopens that tree or the list. The `T` button on an NEI recipe page appends a tree instead of replacing the current one, and switches to an identical tree that is already open.
 
-In addition, middle-clicking in the world or in any container screen opens the active tree directly. When no tree exists, the shortcut leaves vanilla middle-click behaviour alone.
+In addition, a configurable shortcut (middle mouse by default) opens the active tree from the world. Change it under `Options → Controls → Recipe Tree`; it is not registered inside container screens, so it cannot steal a middle-click sort action. When no tree exists, the shortcut leaves vanilla middle-click behaviour alone.
 
 #### 2. Controls
 
@@ -212,7 +212,7 @@ In addition, middle-clicking in the world or in any container screen opens the a
 | `Shift + RMB` | Clear the current node's recipe selection |
 | `Del` | Remove the hovered material and its branch from the tree and the total cost; removals are saved with the tree |
 | `Ctrl + Z` | Restore the most recently removed material; press repeatedly to undo more |
-| `Middle click (world/container)` | Open the active recipe tree directly |
+| `Open-tree shortcut (middle mouse by default, world only)` | Open the active recipe tree directly; rebind under `Options → Controls → Recipe Tree` |
 | `Esc` | Close the recipe tree screen and return to the game |
 | `E` | Close the recipe tree screen and return to the game |
 | `List button (top right)` | Return to the tree list |
