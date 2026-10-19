@@ -110,12 +110,21 @@ public class InventoryTreeButton extends GuiButton {
         }
         GuiScreen parent = mc.currentScreen;
         if (TreeStorage.getLastView() == TreeStorage.View.TREE && BoM.tree != null) {
-            // Keep a selector behind the tree so E still has a place to return to.
-            mc.displayGuiScreen(new GuiRecipeTree(new GuiTreeManager(parent)));
+            openActiveTree(mc, parent);
         } else {
             mc.displayGuiScreen(new GuiTreeManager(parent));
         }
         return true;
+    }
+
+    /** Opens the active tree directly, with a selector behind it for the back button. */
+    public void openActiveTree(Minecraft mc, GuiScreen parent) {
+        if (BoM.tree == null) {
+            mc.displayGuiScreen(new GuiTreeManager(parent));
+            return;
+        }
+        TreeStorage.setLastView(TreeStorage.View.TREE);
+        mc.displayGuiScreen(new GuiRecipeTree(new GuiTreeManager(parent)));
     }
 
     public List<String> getToolTip() {

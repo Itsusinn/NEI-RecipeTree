@@ -1,5 +1,7 @@
 package moe.takochan.neirecipetree.bom;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -18,6 +20,8 @@ public class MaterialTree {
     public Map<ItemStackKey, NEIRecipeRef> resolutions = new HashMap<>();
     /** Materials the player removed from this tree; they stay out of the layout and total cost. */
     public Set<ItemStackKey> removedMaterials = new HashSet<>();
+    /** Session-only undo stack for {@link #removedMaterials}. */
+    private final Deque<ItemStackKey> removalHistory = new ArrayDeque<>();
     public long batches = 1;
 
     public MaterialTree(NEIRecipeRef recipe) {
@@ -100,6 +104,17 @@ public class MaterialTree {
         }
         ItemStackKey key = materialKey(node.ingredient);
         if (key == null || !removedMaterials.add(key)) {
+            return false;
+        }
+        removalHistory.push(key);
+        recalculate();
+        return true;
+    }
+
+    /** Restores the most recently deleted material, if any. */
+    public boolean restoreLastRemovedMaterial() {
+        ItemStackKey key = removalHistory.poll();
+        if (key == null || !removedMaterials.remove(key)) {
             return false;
         }
         recalculate();

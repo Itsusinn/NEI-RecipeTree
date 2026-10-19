@@ -1137,6 +1137,13 @@ public class GuiRecipeTree extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
+        if (isCtrlKeyDown() && keyCode == Keyboard.KEY_Z) {
+            if (BoM.tree != null && BoM.tree.restoreLastRemovedMaterial()) {
+                recalculateTree();
+                TreeStorage.save();
+            }
+            return;
+        }
         if (keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_E) {
             // Esc and E both close the tree screen; the selector has its own action button.
             BoM.pendingResolution = null;

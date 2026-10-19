@@ -8,6 +8,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import moe.takochan.neirecipetree.bom.AlternativePreferences;
 import moe.takochan.neirecipetree.bom.TreeStorage;
 import moe.takochan.neirecipetree.nei.InventoryTreeButtonHandler;
+import moe.takochan.neirecipetree.nei.TreeMouseHandler;
 
 public class ClientProxy extends CommonProxy {
 
@@ -22,6 +23,7 @@ public class ClientProxy extends CommonProxy {
     public void init(FMLInitializationEvent event) {
         super.init(event);
         MinecraftForge.EVENT_BUS.register(new InventoryTreeButtonHandler());
+        MinecraftForge.EVENT_BUS.register(new TreeMouseHandler());
     }
 
     @Override
