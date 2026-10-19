@@ -1,9 +1,11 @@
 package moe.takochan.neirecipetree.bom;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -119,6 +121,27 @@ public class MaterialTree {
         }
         recalculate();
         return true;
+    }
+
+    /** Newest first, for saving the undo order together with the removed set. */
+    public List<ItemStackKey> getRemovalHistory() {
+        List<ItemStackKey> ordered = new ArrayList<>(removalHistory);
+        for (ItemStackKey key : removedMaterials) {
+            if (!ordered.contains(key)) {
+                ordered.add(key);
+            }
+        }
+        return ordered;
+    }
+
+    /** Restores a saved undo stack; the newest entry must come first. */
+    public void loadRemovalHistory(List<ItemStackKey> keys) {
+        removalHistory.clear();
+        for (ItemStackKey key : keys) {
+            if (removedMaterials.contains(key)) {
+                removalHistory.addLast(key);
+            }
+        }
     }
 
     private void pruneRemoved(MaterialNode node) {

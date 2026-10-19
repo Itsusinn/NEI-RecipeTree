@@ -152,12 +152,14 @@ public final class TreeStorage {
         for (SavedTree saved : data.trees) {
             MaterialTree tree = new MaterialTree(saved.goal, false);
             tree.batches = saved.batches;
+            List<ItemStackKey> removedKeys = new ArrayList<>();
             for (ItemStack removed : saved.removedMaterials) {
                 ItemStackKey key = ItemStackKey.of(removed);
-                if (key != null) {
-                    tree.removedMaterials.add(key);
+                if (key != null && tree.removedMaterials.add(key)) {
+                    removedKeys.add(key);
                 }
             }
+            tree.loadRemovalHistory(removedKeys);
             if (!saved.resolutions.isEmpty()) {
                 pendingResolutions.put(tree, saved.resolutions);
             }
@@ -428,7 +430,7 @@ public final class TreeStorage {
                 entry.setTag("resolutions", resolutionTags);
 
                 NBTTagList removedTags = new NBTTagList();
-                for (ItemStackKey key : tree.removedMaterials) {
+                for (ItemStackKey key : tree.getRemovalHistory()) {
                     if (key != null) {
                         removedTags.appendTag(writeStack(key.toItemStack()));
                     }

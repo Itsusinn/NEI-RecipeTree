@@ -32,7 +32,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - 总材料成本与副产物优先按物品 ID、损伤值排序，流体始终排在最后，列表不会随哈希顺序跳动
 - 液体按体积（`L` / mB）统计，同一液体的多处需求合并为一行
 - 支持折叠 / 展开节点，保留用户手动选择的分解路径
-- 悬停材料按 `Del` 可将其从树和总材料成本中删除，`Ctrl + Z` 逐项恢复，删除记录随该树保存
+- 悬停材料按 `Del` 可将其从树和总材料成本中删除，`Ctrl + Z` 逐项恢复，删除和撤销顺序随该树保存
 - 右上角快捷操作：
   - 返回合成树列表
   - 导出到 NEI 收藏夹
@@ -83,7 +83,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 | `右键` | 折叠 / 展开当前节点 |
 | `Shift + 右键` | 清除当前节点的配方选择 |
 | `Del` | 删除当前悬停的材料及其分支，并从总材料成本中排除；删除状态随该树保存 |
-| `Ctrl + Z` | 恢复最近一次删除的材料，可连续按下逐项恢复 |
+| `Ctrl + Z` | 恢复最近一次删除的材料，可连续按下逐项恢复；撤销顺序随树保存，重启后仍可用 |
 | `打开合成树快捷键（默认鼠标中键，仅世界内）` | 直接打开当前合成树；可在 `选项 → 控制 → 合成树` 中修改 |
 | `Esc` | 直接关闭配方树界面，返回游戏 |
 | `E` | 直接关闭配方树界面，返回游戏 |
@@ -160,7 +160,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 - Total cost and remainder rows are ordered by item id and damage, with fluids always placed last, so they no longer follow the hash order of the cost maps
 - Fluids are counted by volume (`L` / mB) and every request for the same fluid is merged into one row
 - Collapse / expand nodes while preserving manual recipe choices
-- Hover a material and press `Del` to remove it from the tree and total cost; `Ctrl + Z` restores removals one by one, and removals are saved with that tree
+- Hover a material and press `Del` to remove it from the tree and total cost; `Ctrl + Z` restores removals one by one, and both the removals and their undo order are saved with that tree
 - Quick actions in the top-right corner:
   - return to the tree list
   - export to NEI bookmarks
@@ -211,7 +211,7 @@ In addition, a configurable shortcut (middle mouse by default) opens the active 
 | `RMB` | Collapse / expand the current node |
 | `Shift + RMB` | Clear the current node's recipe selection |
 | `Del` | Remove the hovered material and its branch from the tree and the total cost; removals are saved with the tree |
-| `Ctrl + Z` | Restore the most recently removed material; press repeatedly to undo more |
+| `Ctrl + Z` | Restore the most recently removed material; press repeatedly to undo more. The undo order is saved with the tree and survives a restart |
 | `Open-tree shortcut (middle mouse by default, world only)` | Open the active recipe tree directly; rebind under `Options → Controls → Recipe Tree` |
 | `Esc` | Close the recipe tree screen and return to the game |
 | `E` | Close the recipe tree screen and return to the game |
