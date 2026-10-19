@@ -36,6 +36,7 @@ import codechicken.nei.recipe.GuiRecipeTab;
 import codechicken.nei.recipe.HandlerInfo;
 import codechicken.nei.recipe.Recipe;
 import codechicken.nei.recipe.RecipeTooltipLineHandler;
+import moe.takochan.neirecipetree.bom.AlternativePreferences;
 import moe.takochan.neirecipetree.bom.BoM;
 import moe.takochan.neirecipetree.bom.ChanceMaterialCost;
 import moe.takochan.neirecipetree.bom.ChanceState;
@@ -930,6 +931,9 @@ public class GuiRecipeTree extends GuiScreen {
                     // Ctrl+LMB: this slot accepts substitutes, switch which one the node stands for
                     // (Ctrl+Shift+LMB walks the alternatives backwards)
                     if (mn.cyclePermutation(isShiftKeyDown())) {
+                        // Remember the pick for this slot so other recipes (and later sessions)
+                        // reuse it instead of making the player choose again
+                        AlternativePreferences.remember(mn.permutations, mn.permutationIndex);
                         mn.state = FoldState.EXPANDED;
                         recalculateTree();
                     }

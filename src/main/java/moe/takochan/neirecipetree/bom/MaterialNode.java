@@ -69,6 +69,12 @@ public class MaterialNode {
         this.baseAmount = FluidStacks.unitAmount(permutations[0]);
         this.amount = this.baseAmount;
         applyPermutation(permutations[0]);
+        // Reuse the alternative the player picked for this slot earlier, instead of making them
+        // pick it again in every recipe that offers it
+        int remembered = AlternativePreferences.findRemembered(permutations);
+        if (remembered > 0) {
+            selectPermutation(remembered);
+        }
     }
 
     public MaterialNode(MaterialNode node) {

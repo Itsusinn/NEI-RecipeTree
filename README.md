@@ -27,7 +27,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - 在 NEI 配方界面直接打开当前物品的合成树
 - 背包界面提供按钮，可直接跳回当前正在浏览的合成树
 - 对同一产物在多种候选配方之间切换，并将选择回写到整棵树
-- 同一配方槽位存在多个可替换物品时，自动选用可分解的那个，并支持手动切换
+- 同一配方槽位存在多个可替换物品时，自动选用可分解的那个，并支持手动切换；手动选择会被记住，同一槽位在其它配方与下次启动时自动沿用
 - 递归展开材料需求，汇总总材料成本
 - 液体按体积（`L` / mB）统计，同一液体的多处需求合并为一行
 - 支持折叠 / 展开节点，保留用户手动选择的分解路径
@@ -63,7 +63,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 | --- | --- |
 | `左键` | 浏览并选择当前节点的配方 |
 | `Shift + 左键` | 自动选择第一个匹配配方 |
-| `Ctrl + 左键` | 在当前槽位的可替换物品之间切换（`Ctrl + Shift + 左键` 反向） |
+| `Ctrl + 左键` | 在当前槽位的可替换物品之间切换（`Ctrl + Shift + 左键` 反向）；选择会被记住并写入 `config/neirecipetree_alternatives.dat`，切回该槽位的首个物品即清除对应记忆 |
 | `右键` | 折叠 / 展开当前节点 |
 | `Shift + 右键` | 清除当前节点的配方选择 |
 | `Del` | 重置整棵树 |
@@ -134,7 +134,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 - Open a full recipe tree directly from an NEI recipe page
 - A button in the player inventory jumps straight back into the tree you were browsing
 - Switch between multiple valid recipes for the same output and apply the selection back into the tree
-- Recipe slots that accept several substitutable items fall back to a decomposable one and can be switched manually
+- Recipe slots that accept several substitutable items fall back to a decomposable one and can be switched manually; picks are remembered and reused by other recipes and later sessions
 - Recursively expand ingredient requirements and calculate total material cost
 - Fluids are counted by volume (`L` / mB) and every request for the same fluid is merged into one row
 - Collapse / expand nodes while preserving manual recipe choices
@@ -170,7 +170,7 @@ Once a tree exists, opening your inventory shows a button left of the item panel
 | --- | --- |
 | `LMB` | Browse and choose a recipe for the current node |
 | `Shift + LMB` | Auto-select the first matching recipe |
-| `Ctrl + LMB` | Switch the selected alternative of the slot (`Ctrl + Shift + LMB` for the previous one) |
+| `Ctrl + LMB` | Switch the selected alternative of the slot (`Ctrl + Shift + LMB` for the previous one); the pick is remembered in `config/neirecipetree_alternatives.dat` and cleared by switching back to the slot's first item |
 | `RMB` | Collapse / expand the current node |
 | `Shift + RMB` | Clear the current node's recipe selection |
 | `Del` | Reset the entire tree |
