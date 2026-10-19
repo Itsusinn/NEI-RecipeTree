@@ -18,6 +18,7 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.shader.Framebuffer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 
@@ -195,7 +196,9 @@ public class GuiRecipeTree extends GuiScreen {
         // Layout costs centered horizontally, sized by the actual rendered text
         int costY = sectionBaseY + 15;
         costs.addAll(tempCosts);
-        layoutCostEntries(costs, costY);
+        int maxCostWidth = Math.max(240, (int) (width / getScale()) - 2 * COST_SIDE_MARGIN);
+        int costRows = layoutCostEntries(costs, costY, maxCostWidth);
+        remainderHeaderY = costY + Math.max(1, costRows) * COST_ROW_HEIGHT + 8;
 
         // Remainders section below costs
         List<CostEntry> tempRems = new ArrayList<>();
@@ -207,35 +210,81 @@ public class GuiRecipeTree extends GuiScreen {
         }
 
         remainderEntries.addAll(tempRems);
-        layoutCostEntries(remainderEntries, costY + 45);
+        layoutCostEntries(remainderEntries, remainderHeaderY + 12, maxCostWidth);
     }
 
     private static final int COST_ICON_WIDTH = 16;
     private static final int COST_TEXT_GAP = 2;
+    private static final int COST_NAME_GAP = 4;
     private static final int COST_ENTRY_SPACING = 8;
+    private static final int COST_ROW_HEIGHT = 18;
+    private static final int COST_MAX_NAME_WIDTH = 120;
+    private static final int COST_SIDE_MARGIN = 40;
+
+    /** Y of the remainder section title, so it follows however many cost rows were laid out. */
+    private int remainderHeaderY;
 
     /**
-     * Positions cost entries sequentially using the current font metrics. Fixed-width slots break when a
-     * font renders wider glyphs (for example Angelica's custom font), causing amount text to overlap the
-     * neighbouring item icons.
+     * Positions cost entries into centered rows using the current font metrics. Fixed-width slots break
+     * when a font renders wider glyphs (for example Angelica's custom font), causing amount text to
+     * overlap the neighbouring item icons.
+     *
+     * <p>
+     * Each entry shows its icon, amount, and item name; rows wrap when the total width would leave the
+     * visible tree area.
      */
-    private void layoutCostEntries(List<CostEntry> entries, int y) {
+    private int layoutCostEntries(List<CostEntry> entries, int y, int maxWidth) {
         if (entries.isEmpty()) {
-            return;
+            return 0;
         }
 
-        int totalWidth = COST_ENTRY_SPACING * (entries.size() - 1);
+        List<List<CostEntry>> rows = new ArrayList<>();
+        List<CostEntry> row = new ArrayList<>();
+        int rowWidth = 0;
         for (CostEntry entry : entries) {
-            entry.width = COST_ICON_WIDTH + COST_TEXT_GAP + fontRendererObj.getStringWidth(getCostAmountText(entry));
-            totalWidth += entry.width;
+            entry.displayName = getCostDisplayName(entry.stack);
+            entry.amountWidth = fontRendererObj.getStringWidth(getCostAmountText(entry));
+            entry.width = COST_ICON_WIDTH + COST_TEXT_GAP
+                + entry.amountWidth
+                + (entry.displayName.isEmpty() ? 0 : COST_NAME_GAP + fontRendererObj.getStringWidth(entry.displayName));
+            int extra = (row.isEmpty() ? 0 : COST_ENTRY_SPACING) + entry.width;
+            if (!row.isEmpty() && rowWidth + extra > maxWidth) {
+                rows.add(row);
+                row = new ArrayList<>();
+                rowWidth = 0;
+                extra = entry.width;
+            }
+            row.add(entry);
+            rowWidth += extra;
         }
+        rows.add(row);
 
-        int cursor = -totalWidth / 2;
-        for (CostEntry entry : entries) {
-            entry.x = cursor + COST_ICON_WIDTH / 2;
-            entry.y = y;
-            cursor += entry.width + COST_ENTRY_SPACING;
+        for (int r = 0; r < rows.size(); r++) {
+            List<CostEntry> current = rows.get(r);
+            int width = COST_ENTRY_SPACING * (current.size() - 1);
+            for (CostEntry entry : current) {
+                width += entry.width;
+            }
+            int cursor = -width / 2;
+            for (CostEntry entry : current) {
+                entry.x = cursor + COST_ICON_WIDTH / 2;
+                entry.y = y + r * COST_ROW_HEIGHT;
+                cursor += entry.width + COST_ENTRY_SPACING;
+            }
         }
+        return rows.size();
+    }
+
+    private String getCostDisplayName(ItemStack stack) {
+        String name = stack.getDisplayName();
+        if (name == null) {
+            return "";
+        }
+        name = EnumChatFormatting.getTextWithoutFormattingCodes(name);
+        if (fontRendererObj.getStringWidth(name) > COST_MAX_NAME_WIDTH) {
+            name = fontRendererObj.trimStringToWidth(name, COST_MAX_NAME_WIDTH - 6) + "...";
+        }
+        return name;
     }
 
     @Override
@@ -470,10 +519,8 @@ public class GuiRecipeTree extends GuiScreen {
         }
 
         if (!remainderEntries.isEmpty()) {
-            int costItemsY = (nodeHeight + 1) * TreeLayout.NODE_VERTICAL_SPACING + 35;
-            int remHeaderY = costItemsY + 30;
             String remTitle = "\u00a77" + StatCollector.translateToLocal("neirecipetree.cost.remainders");
-            TreeRenderer.drawCenteredText(0, remHeaderY, remTitle, 0xFF888888);
+            TreeRenderer.drawCenteredText(0, remainderHeaderY, remTitle, 0xFF888888);
             for (CostEntry rem : remainderEntries) {
                 drawCostEntry(rem);
                 if (interactive && worldMouseX >= rem.x - 8
@@ -826,7 +873,12 @@ public class GuiRecipeTree extends GuiScreen {
         TreeRenderer.drawItemStack(cost.x - 8, cost.y, cost.stack, "");
         String amountStr = getCostAmountText(cost);
         int color = cost.chanced ? 0xFFFFAA00 : 0xFFFFFFFF;
-        TreeRenderer.drawAmountText(cost.x + 10, cost.y + 4, amountStr, color);
+        int textX = cost.x + 10;
+        TreeRenderer.drawAmountText(textX, cost.y + 4, amountStr, color);
+        if (!cost.displayName.isEmpty()) {
+            TreeRenderer
+                .drawAmountText(textX + cost.amountWidth + COST_NAME_GAP, cost.y + 4, cost.displayName, 0xFFDDDDDD);
+        }
     }
 
     private String getCostAmountText(CostEntry cost) {
@@ -1277,11 +1329,13 @@ public class GuiRecipeTree extends GuiScreen {
         }
 
         if (!remainderEntries.isEmpty()) {
-            int costItemsY = (nodeHeight + 1) * TreeLayout.NODE_VERTICAL_SPACING + 35;
-            int remHeaderY = costItemsY + 30;
             String remTitle = "\u00a77" + StatCollector.translateToLocal("neirecipetree.cost.remainders");
             int remTitleWidth = fontRendererObj.getStringWidth(remTitle);
-            bounds.include(-remTitleWidth / 2, remHeaderY, remTitleWidth / 2, remHeaderY + fontRendererObj.FONT_HEIGHT);
+            bounds.include(
+                -remTitleWidth / 2,
+                remainderHeaderY,
+                remTitleWidth / 2,
+                remainderHeaderY + fontRendererObj.FONT_HEIGHT);
             for (CostEntry rem : remainderEntries) {
                 bounds.include(rem.x - 8, rem.y, rem.x - 8 + rem.width, rem.y + 16);
             }
@@ -1431,6 +1485,8 @@ public class GuiRecipeTree extends GuiScreen {
         public int x;
         public int y;
         public int width;
+        public String displayName = "";
+        public int amountWidth;
 
         public CostEntry(ItemStack stack, long amount, boolean chanced) {
             this.stack = stack;
