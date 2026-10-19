@@ -6,7 +6,9 @@ import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 
 import org.lwjgl.opengl.GL11;
@@ -15,18 +17,20 @@ import codechicken.lib.gui.GuiDraw;
 import moe.takochan.neirecipetree.bom.BoM;
 import moe.takochan.neirecipetree.bom.MaterialTree;
 import moe.takochan.neirecipetree.gui.GuiTreeManager;
-import moe.takochan.neirecipetree.gui.TreeRenderer;
 
 /**
- * Button added to the player inventory that opens the recipe tree list.
+ * Inventory button that opens the recipe tree list.
  *
  * <p>
- * Its icon is the goal of the selected tree, so it also tells which tree is active. Nothing is drawn
- * while no tree has been opened yet.
+ * Styled like the other inventory buttons of the pack (EZMiner, ServerUtilities sidebar): a bare
+ * 16x16 icon on a transparent background with a faint white overlay while hovered, no custom frame.
+ * Nothing is drawn while no tree has been opened yet.
  */
 public class InventoryTreeButton extends GuiButton {
 
-    public static final int SIZE = 20;
+    public static final int SIZE = 16;
+    private static final ResourceLocation ICON = new ResourceLocation("neirecipetree", "textures/gui/tree_button.png");
+    private static final int HOVER_OVERLAY = 0x22FFFFFF;
 
     public InventoryTreeButton(int id, int x, int y) {
         super(id, x, y, SIZE, SIZE, "");
@@ -54,16 +58,21 @@ public class InventoryTreeButton extends GuiButton {
             return;
         }
         boolean hovered = isMouseOver(mouseX, mouseY);
-        int background = hovered ? 0xFF3B3B3B : 0xFF2A2A2A;
-        int border = hovered ? 0xFFF0F0F0 : 0xFF8B8B8B;
-        GuiDraw.drawRect(xPosition, yPosition, width, height, background);
-        GuiDraw.drawRect(xPosition, yPosition, width, 1, border);
-        GuiDraw.drawRect(xPosition, yPosition + height - 1, width, 1, border);
-        GuiDraw.drawRect(xPosition, yPosition, 1, height, border);
-        GuiDraw.drawRect(xPosition + width - 1, yPosition, 1, height, border);
 
+        mc.getTextureManager()
+            .bindTexture(ICON);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        TreeRenderer.drawItemStack(xPosition + 2, yPosition + 2, activeGoal());
+        drawTexturedModalRect(xPosition, yPosition, 0, 0, width, height);
+
+        if (hovered) {
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
+            GuiDraw.drawRect(xPosition, yPosition, width, height, HOVER_OVERLAY);
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+        }
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     public boolean isMouseOver(int mouseX, int mouseY) {

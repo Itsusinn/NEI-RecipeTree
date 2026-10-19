@@ -35,7 +35,7 @@ public class InventoryTreeButtonHandler {
         GuiScreen gui = event.gui;
         int guiLeft = (gui.width - GUI_WIDTH) / 2;
         int guiTop = (gui.height - GUI_HEIGHT) / 2;
-        button = new InventoryTreeButton(BUTTON_ID, guiLeft - InventoryTreeButton.SIZE - 4, guiTop + 4);
+        button = new InventoryTreeButton(BUTTON_ID, guiLeft - InventoryTreeButton.SIZE - 2, guiTop + 4);
         event.buttonList.add(button);
     }
 
