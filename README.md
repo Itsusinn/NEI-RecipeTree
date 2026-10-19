@@ -28,6 +28,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - 对同一产物在多种候选配方之间切换，并将选择回写到整棵树
 - 同一配方槽位存在多个可替换物品时，自动选用可分解的那个，并支持手动切换
 - 递归展开材料需求，汇总总材料成本
+- 液体按体积（`L` / mB）统计，同一液体的多处需求合并为一行
 - 支持折叠 / 展开节点，保留用户手动选择的分解路径
 - 右上角快捷导出：
   - 导出到 NEI 收藏夹
@@ -40,6 +41,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 
 - **字体宽度渲染修复**：总成本行与副产物行原先按固定 `24px` 槽位排布，数量文字也用固定偏移绘制；遇到字宽更大的字体（例如 Angelica 的自定义字体）时，数量会被压到相邻物品图标上。现在每一项先用 `FontRenderer#getStringWidth` 实测宽度再顺序排布，导出图片的边界计算与悬停判定也复用同一宽度，不再重叠。
 - **可替换物品（多候选槽位）**：NEI 在 `PositionedStack.items` 中给出槽位的全部候选物品，旧实现只取第一项。当第一项本身没有配方时，节点会误判为原材料；现在会自动回退到可分解的候选，并支持手动切换（见上方“主要功能”）。
+- **液体需求量合并**：GT 把液体体积写在展示物的 NBT 里（`mFluidDisplayAmount`），物品堆叠数恒为 1，所以同一液体在不同配方中的需求会被当成不同物品、在总材料成本里各占一行。现在按 `StackInfo#getFluid` 读出体积并以 mB 参与计算，统计时用“去掉体积后的展示物”作为聚合键，同一液体只保留一行、体积累加（显示为 `3000L`）。
 
 ### 使用方式
 
@@ -130,6 +132,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 - Switch between multiple valid recipes for the same output and apply the selection back into the tree
 - Recipe slots that accept several substitutable items fall back to a decomposable one and can be switched manually
 - Recursively expand ingredient requirements and calculate total material cost
+- Fluids are counted by volume (`L` / mB) and every request for the same fluid is merged into one row
 - Collapse / expand nodes while preserving manual recipe choices
 - Quick actions in the top-right corner:
   - export to NEI bookmarks
@@ -142,6 +145,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 
 - **Font width rendering**: the total cost and remainder rows used to be laid out in fixed `24px` slots with fixed text offsets, so wider fonts (for example Angelica's custom font) made the amounts overlap the neighbouring item icons. Every entry is now measured with `FontRenderer#getStringWidth` and spaced sequentially, and both the exported image bounds and the hover hitboxes reuse that measured width.
 - **Substitutable items (multi-candidate slots)**: NEI reports every candidate of a slot in `PositionedStack.items`, but the tree used to keep only the first entry, so a slot whose first candidate has no recipe was mistaken for a raw material. The tree now falls back to a decomposable candidate and lets you switch between them (see *Features*).
+- **Fluid requirement merging**: GT stores a fluid's volume in the display item's NBT (`mFluidDisplayAmount`) while the stack size stays `1`, so the same fluid requested by different recipes looked like different items and took one row each in the total cost. The volume is now read through `StackInfo#getFluid` and counted in mB, and costs aggregate on the display item with the volume removed, so a fluid keeps a single row and its volumes add up (rendered as `3000L`).
 
 ### Usage
 

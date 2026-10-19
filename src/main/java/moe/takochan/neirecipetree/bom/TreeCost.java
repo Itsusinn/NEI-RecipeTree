@@ -6,6 +6,7 @@ import java.util.Map;
 
 import net.minecraft.item.ItemStack;
 
+import moe.takochan.neirecipetree.recipe.FluidStacks;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
 
@@ -40,7 +41,7 @@ public class TreeCost {
     }
 
     private void addCost(ItemStack stack, long amount, long minBatch, ChanceState chance) {
-        ItemStackKey key = ItemStackKey.of(stack);
+        ItemStackKey key = aggregationKey(stack);
         if (key == null) return;
 
         if (chance.chanced()) {
@@ -65,7 +66,7 @@ public class TreeCost {
     private void addRemainder(ItemStack stack, long amount, ChanceState chance) {
         if (amount <= 0 || stack == null) return;
 
-        ItemStackKey key = ItemStackKey.of(stack);
+        ItemStackKey key = aggregationKey(stack);
         if (key == null) return;
 
         if (chance.chanced()) {
@@ -86,7 +87,7 @@ public class TreeCost {
     }
 
     private long getRemainder(ItemStack stack, long desired, boolean catalyst) {
-        ItemStackKey key = ItemStackKey.of(stack);
+        ItemStackKey key = aggregationKey(stack);
         if (key == null) return 0;
 
         FlatMaterialCost remainder = remainders.get(key);
@@ -110,7 +111,7 @@ public class TreeCost {
     }
 
     private double getChancedRemainder(ItemStack stack, double desired, boolean catalyst, ChanceState chance) {
-        ItemStackKey key = ItemStackKey.of(stack);
+        ItemStackKey key = aggregationKey(stack);
         if (key == null) return 0;
 
         double given = 0;
@@ -235,7 +236,7 @@ public class TreeCost {
             List<ItemStack> allOutputs = recipe.getAllOutputs();
             for (ItemStack output : allOutputs) {
                 if (!ItemStackKey.matches(output, ingredientStack)) {
-                    addRemainder(output, minBatches * output.stackSize, produced);
+                    addRemainder(output, minBatches * FluidStacks.unitAmount(output), produced);
                 }
             }
 
@@ -252,6 +253,15 @@ public class TreeCost {
         } else {
             addCost(node.ingredient, amount, node.amount, chance);
         }
+    }
+
+    /**
+     * Cost entries are keyed by the stack, but two recipes requesting the same fluid with different
+     * volumes carry different NBT and would otherwise become two separate rows. Dropping the volume
+     * from the key merges them, while their amounts (already in millibuckets) still add up.
+     */
+    private static ItemStackKey aggregationKey(ItemStack stack) {
+        return ItemStackKey.of(FluidStacks.aggregationKey(stack));
     }
 
     public long getIdealBatch(MaterialNode node, long total, long amount) {

@@ -12,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import codechicken.nei.PositionedStack;
+import moe.takochan.neirecipetree.recipe.FluidStacks;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
 import moe.takochan.neirecipetree.recipe.RecipeAdapter;
@@ -55,7 +56,7 @@ public class MaterialNode {
 
     public MaterialNode(ItemStack stack) {
         this.permutations = new ItemStack[] { stack.copy() };
-        this.baseAmount = permutations[0].stackSize;
+        this.baseAmount = FluidStacks.unitAmount(permutations[0]);
         this.amount = this.baseAmount;
         applyPermutation(permutations[0]);
     }
@@ -65,7 +66,7 @@ public class MaterialNode {
         if (this.permutations.length == 0) {
             throw new IllegalArgumentException("PositionedStack contains no items");
         }
-        this.baseAmount = permutations[0].stackSize;
+        this.baseAmount = FluidStacks.unitAmount(permutations[0]);
         this.amount = this.baseAmount;
         applyPermutation(permutations[0]);
     }
@@ -151,7 +152,7 @@ public class MaterialNode {
 
         this.ingredient = selected.copy();
         this.ingredient.stackSize = 1;
-        this.baseAmount = selected.stackSize;
+        this.baseAmount = FluidStacks.unitAmount(selected);
         this.amount += this.baseAmount - previousBase;
 
         ItemStack newRemainder = RecipeAdapter.getContainerItem(selected);
@@ -317,7 +318,7 @@ public class MaterialNode {
                 for (MaterialNode existing : children) {
                     if (existing.permutations.length > 0
                         && ItemStackKey.matches(inputStack, existing.permutations[0])) {
-                        existing.amount += inputStack.stackSize;
+                        existing.amount += FluidStacks.unitAmount(inputStack);
                         ItemStack existingRemainder = RecipeAdapter.getContainerItem(inputStack);
                         if (existingRemainder != null) {
                             existing.remainderAmount += existingRemainder.stackSize;
@@ -360,7 +361,7 @@ public class MaterialNode {
         if (outputPs != null) {
             for (ItemStack outputItem : outputPs.items) {
                 if (ItemStackKey.matches(outputItem, ingredient)) {
-                    divisor += outputItem.stackSize;
+                    divisor += FluidStacks.unitAmount(outputItem);
                     break;
                 }
             }
@@ -371,7 +372,7 @@ public class MaterialNode {
         if (otherOutputs != null) {
             for (PositionedStack ps : otherOutputs) {
                 if (ps != null && ps.items.length > 0 && ItemStackKey.matches(ps.items[0], ingredient)) {
-                    divisor += ps.items[0].stackSize;
+                    divisor += FluidStacks.unitAmount(ps.items[0]);
                 }
             }
         }

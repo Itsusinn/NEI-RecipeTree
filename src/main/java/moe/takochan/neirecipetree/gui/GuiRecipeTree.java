@@ -42,6 +42,7 @@ import moe.takochan.neirecipetree.bom.ChanceState;
 import moe.takochan.neirecipetree.bom.FlatMaterialCost;
 import moe.takochan.neirecipetree.bom.FoldState;
 import moe.takochan.neirecipetree.bom.MaterialNode;
+import moe.takochan.neirecipetree.recipe.FluidStacks;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
 import moe.takochan.neirecipetree.recipe.RecipeLookup;
@@ -739,7 +740,8 @@ public class GuiRecipeTree extends GuiScreen {
     }
 
     private String getNodeAmountText(TreeNode node) {
-        return TreeLayout.getNodeAmountText(node.amount, node.chance, true);
+        return TreeLayout.getNodeAmountText(node.amount, node.chance, true)
+            + TreeLayout.getAmountSuffix(node.materialNode);
     }
 
     private void drawNode(TreeNode node, boolean opaqueBackground, boolean highlightItem, boolean highlightChild) {
@@ -820,7 +822,8 @@ public class GuiRecipeTree extends GuiScreen {
     }
 
     private String getCostAmountText(CostEntry cost) {
-        return cost.chanced ? "~" + cost.amount : String.valueOf(cost.amount);
+        String text = cost.chanced ? "~" + cost.amount : String.valueOf(cost.amount);
+        return FluidStacks.isFluid(cost.stack) ? text + "L" : text;
     }
 
     /**

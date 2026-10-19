@@ -9,6 +9,7 @@ import net.minecraft.client.gui.FontRenderer;
 import moe.takochan.neirecipetree.bom.ChanceState;
 import moe.takochan.neirecipetree.bom.FoldState;
 import moe.takochan.neirecipetree.bom.MaterialNode;
+import moe.takochan.neirecipetree.recipe.FluidStacks;
 
 public class TreeLayout {
 
@@ -154,7 +155,15 @@ public class TreeLayout {
 
     public static int getNodeWidth(MaterialNode node, long amount, ChanceState chance) {
         int baseWidth = node.recipe != null ? TreeNode.RECIPE_NODE_BASE_WIDTH : TreeNode.ITEM_NODE_BASE_WIDTH;
-        return baseWidth + getAmountOverflow(getNodeAmountText(amount, chance, false));
+        return baseWidth + getAmountOverflow(getNodeAmountText(amount, chance, false) + getAmountSuffix(node));
+    }
+
+    /**
+     * Unit suffix of the amount label: fluids are tracked in millibuckets, so their amounts read
+     * like the "1000L" GT itself renders.
+     */
+    public static String getAmountSuffix(MaterialNode node) {
+        return node != null && FluidStacks.isFluid(node.ingredient) ? "L" : "";
     }
 
     public static String getNodeAmountText(long amount, ChanceState chance, boolean formatted) {
