@@ -1,5 +1,7 @@
 neirecipetree.button.tooltip=View Recipe Tree
 neirecipetree.button.description=Expand all ingredients recursively
+neirecipetree.button.inventory=Open Recipe Tree
+neirecipetree.button.inventory.desc=Jump back to the tree you were working on
 neirecipetree.button.select=Select for Recipe Tree
 neirecipetree.button.select_desc=Use this recipe in the tree
 neirecipetree.button.select_disabled=Not a matching recipe

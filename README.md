@@ -25,6 +25,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 ### 主要功能
 
 - 在 NEI 配方界面直接打开当前物品的合成树
+- 背包界面提供按钮，可直接跳回当前正在浏览的合成树
 - 对同一产物在多种候选配方之间切换，并将选择回写到整棵树
 - 同一配方槽位存在多个可替换物品时，自动选用可分解的那个，并支持手动切换
 - 递归展开材料需求，汇总总材料成本
@@ -53,6 +54,8 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 
 - 在 NEI 配方页点击 `选择此配方`
 - 或者进入合成树后，对节点使用左键浏览并切换配方
+
+合成树一旦建立，打开背包界面时物品栏左侧会出现一个按钮（图标就是当前树的产物），点它可以直接回到这棵树；没有正在浏览的树时按钮不显示。
 
 #### 2. 界面操作
 
@@ -129,6 +132,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 ### Features
 
 - Open a full recipe tree directly from an NEI recipe page
+- A button in the player inventory jumps straight back into the tree you were browsing
 - Switch between multiple valid recipes for the same output and apply the selection back into the tree
 - Recipe slots that accept several substitutable items fall back to a decomposable one and can be switched manually
 - Recursively expand ingredient requirements and calculate total material cost
@@ -157,6 +161,8 @@ If an item has multiple valid recipes, you can either:
 
 - click `Select this recipe` in the NEI recipe page
 - or left-click the node inside the tree to browse and switch recipes
+
+Once a tree exists, opening your inventory shows a button left of the item panel (its icon is the tree's root item) that jumps straight back into that tree; the button stays hidden while no tree is being browsed.
 
 #### 2. Controls
 
