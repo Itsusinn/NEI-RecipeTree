@@ -25,7 +25,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 ### 主要功能
 
 - 在 NEI 配方界面直接打开当前物品的合成树
-- 背包界面提供按钮，可直接跳回当前正在浏览的合成树
+- 背包界面按钮打开合成树列表，可切换 / 新建 / 删除多棵合成树
 - 对同一产物在多种候选配方之间切换，并将选择回写到整棵树
 - 同一配方槽位存在多个可替换物品时，自动选用可分解的那个，并支持手动切换；手动选择会被记住，同一槽位在其它配方与下次启动时自动沿用
 - 递归展开材料需求，汇总总材料成本
@@ -55,7 +55,14 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - 在 NEI 配方页点击 `选择此配方`
 - 或者进入合成树后，对节点使用左键浏览并切换配方
 
-合成树一旦建立，打开背包界面时物品栏左侧会出现一个按钮（图标就是当前树的产物），点它可以直接回到这棵树；没有正在浏览的树时按钮不显示。
+合成树一旦建立，打开背包界面时物品栏左侧会出现一个按钮（图标是当前选中树的产物），点击进入**合成树列表**：
+
+- 左键点击条目：切换并打开该树
+- 右侧 `X`：删除该树
+- `新建`：用光标上拿着的物品新建一棵树（没有手持物品时按钮置灰）
+- 滚动滚轮：条目超过 7 个时翻页
+
+列表为空时按钮不显示。NEI 配方页的 `T` 按钮会追加一棵树而不是替换当前树；已存在完全相同目标的树时直接切换过去。
 
 #### 2. 界面操作
 
@@ -162,7 +169,14 @@ If an item has multiple valid recipes, you can either:
 - click `Select this recipe` in the NEI recipe page
 - or left-click the node inside the tree to browse and switch recipes
 
-Once a tree exists, opening your inventory shows a button left of the item panel (its icon is the tree's root item) that jumps straight back into that tree; the button stays hidden while no tree is being browsed.
+Once a tree exists, opening your inventory shows a button left of the item panel (its icon is the goal of the selected tree) that opens the **tree list**:
+
+- left-click a row to switch to and open that tree
+- the `X` on the right deletes that tree
+- `New` creates a tree from the item held on the cursor (greyed out when the cursor is empty)
+- the mouse wheel pages through the list when there are more than 7 trees
+
+The button stays hidden while the list is empty. The `T` button on an NEI recipe page appends a tree instead of replacing the current one, and switches to an identical tree that is already open.
 
 #### 2. Controls
 

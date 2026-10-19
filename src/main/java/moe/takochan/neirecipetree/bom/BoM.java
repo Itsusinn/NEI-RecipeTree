@@ -1,5 +1,6 @@
 package moe.takochan.neirecipetree.bom;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import codechicken.nei.FavoriteRecipes;
 import codechicken.nei.recipe.Recipe.RecipeId;
 import codechicken.nei.recipe.RecipeHandlerRef;
+import moe.takochan.neirecipetree.recipe.FluidStacks;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
 import moe.takochan.neirecipetree.recipe.RecipeLookup;
@@ -23,6 +25,9 @@ public class BoM {
 
     private static final Logger LOG = LogManager.getLogger("neirecipetree");
 
+    /** Every tree opened during this session, in creation order. */
+    public static final List<MaterialTree> trees = new ArrayList<>();
+    /** The tree currently being browsed, {@code null} when no tree is selected. */
     public static MaterialTree tree;
     public static Map<ItemStackKey, NEIRecipeRef> defaultRecipes = new HashMap<>();
     public static Map<ItemStackKey, NEIRecipeRef> addedRecipes = new HashMap<>();
@@ -34,9 +39,90 @@ public class BoM {
     /** Set when user clicks a tree node to select a recipe from NEI. Cleared after selection. */
     public static ItemStack pendingResolution = null;
 
-    public static void setGoal(NEIRecipeRef recipe) {
-        tree = new MaterialTree(recipe);
+    /**
+     * Adds a tree for {@code recipe} (or reuses the one already open for it) and selects it.
+     */
+    public static MaterialTree setGoal(NEIRecipeRef recipe) {
+        MaterialTree existing = findTreeFor(recipe);
+        if (existing != null) {
+            activate(existing);
+            return existing;
+        }
+        MaterialTree created = new MaterialTree(recipe);
+        trees.add(created);
+        tree = created;
         craftingMode = false;
+        return created;
+    }
+
+    /**
+     * Adds a tree rooted at {@code goal} (or reuses the one already open for that item) and selects
+     * it.
+     */
+    public static MaterialTree setGoal(ItemStack goal) {
+        MaterialTree existing = findTreeFor(goal);
+        if (existing != null) {
+            activate(existing);
+            return existing;
+        }
+        MaterialTree created = new MaterialTree(goal);
+        trees.add(created);
+        tree = created;
+        craftingMode = false;
+        return created;
+    }
+
+    /** Makes {@code target} the tree the GUI works on. */
+    public static void activate(MaterialTree target) {
+        if (target == null || !trees.contains(target)) {
+            return;
+        }
+        tree = target;
+        craftingMode = false;
+        recalculate();
+    }
+
+    /** Drops {@code target} and selects a neighbouring tree when it was the active one. */
+    public static void removeTree(MaterialTree target) {
+        int index = trees.indexOf(target);
+        if (index < 0) {
+            return;
+        }
+        trees.remove(index);
+        if (tree != target) {
+            return;
+        }
+        tree = null;
+        if (!trees.isEmpty()) {
+            activate(trees.get(Math.min(index, trees.size() - 1)));
+        }
+    }
+
+    private static MaterialTree findTreeFor(NEIRecipeRef recipe) {
+        for (MaterialTree candidate : trees) {
+            if (candidate.goal != null && recipe.equals(candidate.goal.recipe)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static MaterialTree findTreeFor(ItemStack goal) {
+        ItemStackKey goalKey = keyOf(goal);
+        if (goalKey == null) {
+            return null;
+        }
+        for (MaterialTree candidate : trees) {
+            if (candidate.goal != null && goalKey.equals(keyOf(candidate.goal.ingredient))) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /** Slot/item keys ignore fluid volumes so the same fluid still matches across recipes. */
+    private static ItemStackKey keyOf(ItemStack stack) {
+        return ItemStackKey.of(FluidStacks.aggregationKey(stack));
     }
 
     /**
@@ -210,6 +296,7 @@ public class BoM {
     }
 
     public static void clear() {
+        trees.clear();
         tree = null;
         defaultRecipes.clear();
         addedRecipes.clear();

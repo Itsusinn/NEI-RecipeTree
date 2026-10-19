@@ -37,6 +37,20 @@ public class MaterialTree {
         recalculate();
     }
 
+    /**
+     * Creates a tree rooted at {@code goalStack} without a recipe yet. The tree resolves one through
+     * {@link BoM#getRecipe(ItemStack)} while recalculating, and stays a plain leaf when the item has
+     * several candidate recipes, so the player picks one from the tree as usual.
+     */
+    public MaterialTree(ItemStack goalStack) {
+        ItemStack goalItem = goalStack.copy();
+        if (goalItem.getItem() == null) {
+            throw new IllegalArgumentException("Goal stack has no item");
+        }
+        goal = new MaterialNode(goalItem);
+        recalculate();
+    }
+
     public NEIRecipeRef getRecipe(ItemStack stack) {
         ItemStackKey key = ItemStackKey.of(stack);
         if (key != null && resolutions.containsKey(key)) {

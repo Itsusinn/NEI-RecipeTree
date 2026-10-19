@@ -1,7 +1,15 @@
 neirecipetree.button.tooltip=View Recipe Tree
 neirecipetree.button.description=Expand all ingredients recursively
-neirecipetree.button.inventory=Open Recipe Tree
-neirecipetree.button.inventory.desc=Jump back to the tree you were working on
+neirecipetree.button.inventory=Recipe Trees
+neirecipetree.button.inventory.desc=Open the list to switch, create or delete trees
+neirecipetree.tree_manager.title=Recipe Trees
+neirecipetree.tree_manager.empty=No recipe tree yet
+neirecipetree.tree_manager.new=New
+neirecipetree.tree_manager.new_ready=Uses the item on the cursor or the one hovered in the inventory
+neirecipetree.tree_manager.new_hint=Hold an item on the cursor to create a tree
+neirecipetree.tree_manager.help=LMB open · X delete · Esc close
+neirecipetree.tree_manager.current=Current
+neirecipetree.tree_manager.unknown=Unknown goal
 neirecipetree.button.select=Select for Recipe Tree
 neirecipetree.button.select_desc=Use this recipe in the tree
 neirecipetree.button.select_disabled=Not a matching recipe

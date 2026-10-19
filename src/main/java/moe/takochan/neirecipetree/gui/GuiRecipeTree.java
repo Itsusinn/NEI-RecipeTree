@@ -1020,8 +1020,8 @@ public class GuiRecipeTree extends GuiScreen {
             mc.displayGuiScreen(parentScreen);
         } else if (keyCode == 211) { // DELETE key
             if (isShiftKeyDown()) {
-                // Shift+Delete: close and clear entire tree
-                BoM.clear();
+                // Shift+Delete: drop this tree from the manager and close
+                BoM.removeTree(BoM.tree);
                 mc.displayGuiScreen(parentScreen);
             } else {
                 // Delete: reset all resolutions (keep root recipe)

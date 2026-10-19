@@ -6,22 +6,23 @@ import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
 
 import org.lwjgl.opengl.GL11;
 
 import codechicken.lib.gui.GuiDraw;
 import moe.takochan.neirecipetree.bom.BoM;
-import moe.takochan.neirecipetree.gui.GuiRecipeTree;
+import moe.takochan.neirecipetree.bom.MaterialTree;
+import moe.takochan.neirecipetree.gui.GuiTreeManager;
 import moe.takochan.neirecipetree.gui.TreeRenderer;
 
 /**
- * Button added to the player inventory that jumps straight back into the recipe tree currently
- * being worked on.
+ * Button added to the player inventory that opens the recipe tree list.
  *
  * <p>
- * The icon is the tree's root item, so it also tells which tree the button would open. Nothing is
- * drawn while there is no tree to return to.
+ * Its icon is the goal of the selected tree, so it also tells which tree is active. Nothing is drawn
+ * while no tree has been opened yet.
  */
 public class InventoryTreeButton extends GuiButton {
 
@@ -32,12 +33,19 @@ public class InventoryTreeButton extends GuiButton {
     }
 
     /**
-     * Only shown once a tree exists: before that there is nothing to go back to.
+     * Only shown once at least one tree exists: there is nothing to manage before that.
      */
     public boolean shouldShow() {
-        return BoM.tree != null && BoM.tree.goal != null
-            && BoM.tree.goal.ingredient != null
-            && BoM.tree.goal.ingredient.getItem() != null;
+        return !BoM.trees.isEmpty();
+    }
+
+    private ItemStack activeGoal() {
+        MaterialTree active = BoM.tree;
+        if (active == null || active.goal == null) {
+            return null;
+        }
+        ItemStack goal = active.goal.ingredient;
+        return goal != null && goal.getItem() != null ? goal : null;
     }
 
     @Override
@@ -55,7 +63,7 @@ public class InventoryTreeButton extends GuiButton {
         GuiDraw.drawRect(xPosition + width - 1, yPosition, 1, height, border);
 
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-        TreeRenderer.drawItemStack(xPosition + 2, yPosition + 2, BoM.tree.goal.ingredient);
+        TreeRenderer.drawItemStack(xPosition + 2, yPosition + 2, activeGoal());
     }
 
     public boolean isMouseOver(int mouseX, int mouseY) {
@@ -70,15 +78,19 @@ public class InventoryTreeButton extends GuiButton {
         if (!enabled || !shouldShow() || !isMouseOver(mouseX, mouseY)) {
             return false;
         }
-        mc.displayGuiScreen(new GuiRecipeTree(mc.currentScreen));
+        mc.displayGuiScreen(new GuiTreeManager(mc.currentScreen));
         return true;
     }
 
     public List<String> getToolTip() {
         List<String> tooltip = new ArrayList<>();
         tooltip.add("\u00a7e" + StatCollector.translateToLocal("neirecipetree.button.inventory"));
-        if (shouldShow()) {
-            tooltip.add("\u00a77" + BoM.tree.goal.ingredient.getDisplayName());
+        ItemStack goal = activeGoal();
+        if (goal != null) {
+            tooltip.add(
+                "\u00a77" + StatCollector.translateToLocal("neirecipetree.tree_manager.current")
+                    + ": "
+                    + goal.getDisplayName());
         }
         tooltip.add("\u00a78" + StatCollector.translateToLocal("neirecipetree.button.inventory.desc"));
         return tooltip;

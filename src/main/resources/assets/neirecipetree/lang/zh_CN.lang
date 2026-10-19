@@ -1,7 +1,15 @@
 neirecipetree.button.tooltip=查看合成树
 neirecipetree.button.description=递归展开所有原材料
-neirecipetree.button.inventory=打开合成树
-neirecipetree.button.inventory.desc=直接返回上次浏览的合成树
+neirecipetree.button.inventory=合成树管理
+neirecipetree.button.inventory.desc=打开列表，切换 / 新建 / 删除合成树
+neirecipetree.tree_manager.title=合成树管理
+neirecipetree.tree_manager.empty=还没有合成树
+neirecipetree.tree_manager.new=新建
+neirecipetree.tree_manager.new_ready=用光标上或背包里悬停的物品新建
+neirecipetree.tree_manager.new_hint=把物品拿在光标上才能新建
+neirecipetree.tree_manager.help=左键打开 · X 删除 · Esc 关闭
+neirecipetree.tree_manager.current=当前
+neirecipetree.tree_manager.unknown=未知目标
 neirecipetree.button.select=选择此配方
 neirecipetree.button.select_desc=将此配方用于合成树
 neirecipetree.button.select_disabled=配方不匹配
