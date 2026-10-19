@@ -126,6 +126,7 @@ public class GuiRecipeTree extends GuiScreen {
     public void initGui() {
         super.initGui();
         if (BoM.tree != null) {
+            TreeStorage.setLastView(TreeStorage.View.TREE);
             offY = height / -3.0;
             TreeStorage.applyResolutions(BoM.tree);
         }
@@ -1116,15 +1117,18 @@ public class GuiRecipeTree extends GuiScreen {
         if (keyCode == Keyboard.KEY_ESCAPE) {
             // ESC closes the tree screen and returns to the game; E goes back to the parent GUI.
             BoM.pendingResolution = null;
+            TreeStorage.setLastView(TreeStorage.View.TREE);
             mc.displayGuiScreen(null);
             mc.setIngameFocus();
         } else if (keyCode == Keyboard.KEY_E) {
             BoM.pendingResolution = null;
+            TreeStorage.setLastView(TreeStorage.View.SELECTOR);
             mc.displayGuiScreen(parentScreen);
         } else if (keyCode == 211) { // DELETE key
             if (isShiftKeyDown()) {
                 // Shift+Delete: drop this tree from the manager and close
                 BoM.removeTree(BoM.tree);
+                TreeStorage.setLastView(TreeStorage.View.SELECTOR);
                 mc.displayGuiScreen(parentScreen);
             } else {
                 // Delete: reset all resolutions (keep root recipe)

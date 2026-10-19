@@ -8,6 +8,7 @@ import org.lwjgl.input.Mouse;
 
 import moe.takochan.neirecipetree.bom.BoM;
 import moe.takochan.neirecipetree.bom.MaterialTree;
+import moe.takochan.neirecipetree.bom.TreeStorage;
 
 /**
  * Lists the recipe trees opened in this session and lets the player switch between them, create a
@@ -48,6 +49,7 @@ public class GuiTreeManager extends GuiScreen {
 
     @Override
     public void initGui() {
+        TreeStorage.setLastView(TreeStorage.View.SELECTOR);
         visibleRows = Math.max(1, Math.min(MAX_VISIBLE_ROWS, BoM.trees.size()));
         panelHeight = TITLE_HEIGHT + visibleRows * ROW_HEIGHT + FOOTER_HEIGHT;
         panelX = (width - PANEL_WIDTH) / 2;
@@ -236,8 +238,16 @@ public class GuiTreeManager extends GuiScreen {
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
         if (keyCode == 1) { // ESC
+            TreeStorage.setLastView(TreeStorage.View.SELECTOR);
             mc.displayGuiScreen(parentScreen);
         }
+    }
+
+    @Override
+    public void onGuiClosed() {
+        super.onGuiClosed();
+        // Remember that the inventory button should reopen the selector rather than a tree.
+        TreeStorage.save();
     }
 
     @Override

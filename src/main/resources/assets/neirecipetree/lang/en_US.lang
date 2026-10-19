@@ -1,7 +1,7 @@
 neirecipetree.button.tooltip=View Recipe Tree
 neirecipetree.button.description=Expand all ingredients recursively
 neirecipetree.button.inventory=Recipe Trees
-neirecipetree.button.inventory.desc=Open the list to switch, create or delete trees
+neirecipetree.button.inventory.desc=Reopen the last recipe tree or the tree list
 neirecipetree.tree_manager.title=Recipe Trees
 neirecipetree.tree_manager.empty=No recipe tree yet
 neirecipetree.tree_manager.new=New

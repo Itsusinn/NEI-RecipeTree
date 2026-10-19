@@ -37,12 +37,20 @@ public final class TreeStorage {
 
     private static final Logger LOG = LogManager.getLogger("neirecipetree");
     private static final String FILE_NAME = "neirecipetree_trees.dat";
-    private static final int FORMAT_VERSION = 5;
+    private static final int FORMAT_VERSION = 6;
     private static final int NBT_COMPOUND = 10;
+
+    /** Which screen the inventory button should reopen after the player closes the GUI. */
+    public enum View {
+
+        SELECTOR,
+        TREE
+    }
 
     private static File file;
     private static volatile boolean loaded;
     private static volatile TreeSnapshot snapshot;
+    private static View lastView = View.SELECTOR;
     private static final Map<MaterialTree, List<PendingResolution>> pendingResolutions = new IdentityHashMap<>();
 
     private static final class PendingResolution {
@@ -64,10 +72,12 @@ public final class TreeStorage {
 
         final List<SavedTree> trees;
         final int active;
+        final View view;
 
-        TreeSnapshot(List<SavedTree> trees, int active) {
+        TreeSnapshot(List<SavedTree> trees, int active, View view) {
             this.trees = trees;
             this.active = active;
+            this.view = view;
         }
     }
 
@@ -149,9 +159,19 @@ public final class TreeStorage {
             int active = Math.max(0, Math.min(BoM.trees.size() - 1, data.active));
             BoM.tree = BoM.trees.get(active);
         }
+        lastView = data.view == View.TREE && BoM.tree != null ? View.TREE : View.SELECTOR;
         if (!data.trees.isEmpty()) {
             LOG.info("Restored {} recipe tree(s)", data.trees.size());
         }
+    }
+
+    /** The screen the inventory button opened last: the active tree or the tree list. */
+    public static View getLastView() {
+        return lastView;
+    }
+
+    public static void setLastView(View view) {
+        lastView = view == null ? View.SELECTOR : view;
     }
 
     /**
@@ -160,7 +180,7 @@ public final class TreeStorage {
      */
     private static TreeSnapshot readSnapshot(File source) {
         if (source == null || !source.isFile()) {
-            return new TreeSnapshot(new ArrayList<>(), 0);
+            return new TreeSnapshot(new ArrayList<>(), 0, View.SELECTOR);
         }
         try {
             NBTTagCompound root = CompressedStreamTools.read(source);
@@ -179,7 +199,10 @@ public final class TreeStorage {
                         Math.max(1L, entry.getLong("batches")),
                         readResolutions(entry.getTagList("resolutions", NBT_COMPOUND))));
             }
-            return new TreeSnapshot(trees, root.getInteger("active"));
+            return new TreeSnapshot(
+                trees,
+                root.getInteger("active"),
+                root.getInteger("lastView") == 1 ? View.TREE : View.SELECTOR);
         } catch (Exception e) {
             LOG.warn("Could not read {}: {}", source, e.toString());
             return null;
@@ -387,6 +410,7 @@ public final class TreeStorage {
             }
             root.setTag("trees", entries);
             root.setInteger("active", BoM.tree == null ? 0 : Math.max(0, BoM.trees.indexOf(BoM.tree)));
+            root.setInteger("lastView", lastView == View.TREE ? 1 : 0);
 
             File parent = target.getParentFile();
             if (parent != null && !parent.exists() && !parent.mkdirs() && !parent.exists()) {

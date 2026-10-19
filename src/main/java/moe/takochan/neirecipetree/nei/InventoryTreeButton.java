@@ -6,6 +6,7 @@ import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -16,11 +17,14 @@ import org.lwjgl.opengl.GL11;
 import codechicken.lib.gui.GuiDraw;
 import moe.takochan.neirecipetree.bom.BoM;
 import moe.takochan.neirecipetree.bom.MaterialTree;
+import moe.takochan.neirecipetree.bom.TreeStorage;
+import moe.takochan.neirecipetree.gui.GuiRecipeTree;
 import moe.takochan.neirecipetree.gui.GuiTreeManager;
 import moe.takochan.neirecipetree.gui.TreeRenderer;
 
 /**
- * Inventory button that opens the recipe tree list.
+ * Inventory button that reopens whatever the player last used: the active tree screen or the tree
+ * list.
  *
  * <p>
  * Uses the original framed-button design: the active tree's goal item is drawn on a dark 20x20
@@ -104,7 +108,13 @@ public class InventoryTreeButton extends GuiButton {
         if (!enabled || !shouldShow() || !isMouseOver(mouseX, mouseY)) {
             return false;
         }
-        mc.displayGuiScreen(new GuiTreeManager(mc.currentScreen));
+        GuiScreen parent = mc.currentScreen;
+        if (TreeStorage.getLastView() == TreeStorage.View.TREE && BoM.tree != null) {
+            // Keep a selector behind the tree so E still has a place to return to.
+            mc.displayGuiScreen(new GuiRecipeTree(new GuiTreeManager(parent)));
+        } else {
+            mc.displayGuiScreen(new GuiTreeManager(parent));
+        }
         return true;
     }
 

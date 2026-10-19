@@ -25,7 +25,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 ### 主要功能
 
 - 在 NEI 配方界面直接打开当前物品的合成树
-- 背包界面按钮打开合成树列表，可切换 / 新建 / 删除多棵合成树；已打开的树会保存到磁盘，重启游戏后自动恢复
+- 背包界面按钮会记住上次关闭时的界面，直接打开当前合成树或合成树列表，可切换 / 新建 / 删除多棵合成树；已打开的树会保存到磁盘，重启游戏后自动恢复
 - 对同一产物在多种候选配方之间切换，并将选择回写到整棵树
 - 同一配方槽位存在多个可替换物品时，自动选用可分解的那个，并支持手动切换；手动选择会被记住，同一槽位在其它配方与下次启动时自动沿用
 - 递归展开材料需求，汇总总材料成本
@@ -58,14 +58,14 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - 在 NEI 配方页点击 `选择此配方`
 - 或者进入合成树后，对节点使用左键浏览并切换配方
 
-合成树一旦建立，打开背包界面时左下角（快捷栏左侧）会出现一个按钮（图标是当前选中树的产物），点击进入**合成树列表**：
+合成树一旦建立，打开背包界面时左下角（快捷栏左侧）会出现一个按钮（图标是当前选中树的产物）。点击后会按照上次关闭时的界面，直接回到当前合成树，或打开**合成树列表**：
 
 - 左键点击条目：切换并打开该树
 - 右侧 `X`：删除该树
 - `新建`：用光标上拿着的物品新建一棵树（没有手持物品时按钮置灰）
 - 滚动滚轮：条目超过 7 个时翻页
 
-列表为空时按钮仍然显示，方便直接新建；已打开的树保存在 `config/neirecipetree_trees.dat`，重启游戏后按钮和树列表都会恢复。NEI 配方页的 `T` 按钮会追加一棵树而不是替换当前树；已存在完全相同目标的树时直接切换过去。
+列表为空时按钮仍然显示，方便直接新建；已打开的树和上次关闭的界面状态保存在 `config/neirecipetree_trees.dat`，重启游戏后按钮会继续打开当时的合成树或列表。NEI 配方页的 `T` 按钮会追加一棵树而不是替换当前树；已存在完全相同目标的树时直接切换过去。
 
 #### 2. 界面操作
 
@@ -144,7 +144,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 ### Features
 
 - Open a full recipe tree directly from an NEI recipe page
-- A button in the player inventory jumps straight back into the tree you were browsing; opened trees are saved to disk and restored after a restart
+- The inventory button reopens whatever screen the tree was closed from — the active tree or the tree list — and the list still supports switching / creating / deleting trees; opened trees are saved to disk and restored after a restart
 - Switch between multiple valid recipes for the same output and apply the selection back into the tree
 - Recipe slots that accept several substitutable items fall back to a decomposable one and can be switched manually; picks are remembered and reused by other recipes and later sessions
 - Recursively expand ingredient requirements and calculate total material cost
@@ -177,14 +177,14 @@ If an item has multiple valid recipes, you can either:
 - click `Select this recipe` in the NEI recipe page
 - or left-click the node inside the tree to browse and switch recipes
 
-Once a tree exists, opening your inventory shows a button at the bottom-left (left of the hotbar, its icon is the selected tree's goal) that opens the **tree list**:
+Once a tree exists, opening your inventory shows a button at the bottom-left (left of the hotbar, its icon is the selected tree's goal). Clicking it returns to the screen the tree was last closed from: the active tree, or the **tree list**:
 
 - left-click a row to switch to and open that tree
 - the `X` on the right deletes that tree
 - `New` creates a tree from the item held on the cursor (greyed out when the cursor is empty)
 - the mouse wheel pages through the list when there are more than 7 trees
 
-The button stays visible even when the list is empty, so a tree can always be started; opened trees are stored in `config/neirecipetree_trees.dat` and both the button and the list come back after a restart. The `T` button on an NEI recipe page appends a tree instead of replacing the current one, and switches to an identical tree that is already open.
+The button stays visible even when the list is empty, so a tree can always be started; opened trees and the last closed view are stored in `config/neirecipetree_trees.dat`, so after a restart the button still reopens that tree or the list. The `T` button on an NEI recipe page appends a tree instead of replacing the current one, and switches to an identical tree that is already open.
 
 #### 2. Controls
 

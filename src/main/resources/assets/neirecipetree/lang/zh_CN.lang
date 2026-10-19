@@ -1,7 +1,7 @@
 neirecipetree.button.tooltip=查看合成树
 neirecipetree.button.description=递归展开所有原材料
 neirecipetree.button.inventory=合成树管理
-neirecipetree.button.inventory.desc=打开列表，切换 / 新建 / 删除合成树
+neirecipetree.button.inventory.desc=重新打开上次的合成树或合成树列表
 neirecipetree.tree_manager.title=合成树管理
 neirecipetree.tree_manager.empty=还没有合成树
 neirecipetree.tree_manager.new=新建
