@@ -816,7 +816,9 @@ public class GuiRecipeTree extends GuiScreen {
     }
 
     private void drawCostEntry(CostEntry cost) {
-        TreeRenderer.drawItemStack(cost.x - 8, cost.y, cost.stack);
+        // The total is drawn next to the icon, so suppress any amount renderer built into the
+        // stack (GT fluid displays) with an empty label.
+        TreeRenderer.drawItemStack(cost.x - 8, cost.y, cost.stack, "");
         String amountStr = getCostAmountText(cost);
         int color = cost.chanced ? 0xFFFFAA00 : 0xFFFFFFFF;
         TreeRenderer.drawAmountText(cost.x + 10, cost.y + 4, amountStr, color);

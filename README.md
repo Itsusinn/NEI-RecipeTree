@@ -43,6 +43,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - **字体宽度渲染修复**：总成本行与副产物行原先按固定 `24px` 槽位排布，数量文字也用固定偏移绘制；遇到字宽更大的字体（例如 Angelica 的自定义字体）时，数量会被压到相邻物品图标上。现在每一项先用 `FontRenderer#getStringWidth` 实测宽度再顺序排布，导出图片的边界计算与悬停判定也复用同一宽度，不再重叠。
 - **可替换物品（多候选槽位）**：NEI 在 `PositionedStack.items` 中给出槽位的全部候选物品，旧实现只取第一项。当第一项本身没有配方时，节点会误判为原材料；现在会自动回退到可分解的候选，并支持手动切换（见上方“主要功能”）。
 - **液体需求量合并**：GT 把液体体积写在展示物的 NBT 里（`mFluidDisplayAmount`），物品堆叠数恒为 1，所以同一液体在不同配方中的需求会被当成不同物品、在总材料成本里各占一行。现在按 `StackInfo#getFluid` 读出体积并以 mB 参与计算，统计时用“去掉体积后的展示物”作为聚合键，同一液体只保留一行、体积累加（显示为 `3000L`）。
+- **液体数量标签不再重叠**：GT 的流体展示物会在图标内再绘制一遍 NBT 里的体积，而树本身也会绘制节点数量和总成本数量，两串数字会叠在同一个图标上。现在树内绘制带数量标签的物品时会给展示物加上 `mHideStackSize`，隐藏 GT 的内置体积文字，只显示按当前批次算出的数量。
 
 ### 使用方式
 
@@ -157,6 +158,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 - **Font width rendering**: the total cost and remainder rows used to be laid out in fixed `24px` slots with fixed text offsets, so wider fonts (for example Angelica's custom font) made the amounts overlap the neighbouring item icons. Every entry is now measured with `FontRenderer#getStringWidth` and spaced sequentially, and both the exported image bounds and the hover hitboxes reuse that measured width.
 - **Substitutable items (multi-candidate slots)**: NEI reports every candidate of a slot in `PositionedStack.items`, but the tree used to keep only the first entry, so a slot whose first candidate has no recipe was mistaken for a raw material. The tree now falls back to a decomposable candidate and lets you switch between them (see *Features*).
 - **Fluid requirement merging**: GT stores a fluid's volume in the display item's NBT (`mFluidDisplayAmount`) while the stack size stays `1`, so the same fluid requested by different recipes looked like different items and took one row each in the total cost. The volume is now read through `StackInfo#getFluid` and counted in mB, and costs aggregate on the display item with the volume removed, so a fluid keeps a single row and its volumes add up (rendered as `3000L`).
+- **Fluid amount labels no longer overlap**: GT's fluid display item paints the NBT volume inside its icon as well, so the tree's own node and total-cost amounts ended up stacked on top of it. Items drawn with an amount now get `mHideStackSize` on the display copy, which suppresses GT's built-in volume text and leaves only the amount calculated for the current batch.
 
 ### Usage
 

@@ -10,6 +10,8 @@ import net.minecraft.item.ItemStack;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import moe.takochan.neirecipetree.recipe.FluidStacks;
+
 public class TreeRenderer {
 
     private static final RenderItem renderItem = new RenderItem();
@@ -60,6 +62,12 @@ public class TreeRenderer {
 
         ItemStack displayStack = stack.copy();
         displayStack.stackSize = 1;
+        // GT's fluid display item draws its own volume text inside the icon. When the caller
+        // supplies (or reserves space for) an amount, hide GT's label so two amounts do not get
+        // painted over each other.
+        if (amountText != null) {
+            FluidStacks.hideDisplayedAmount(displayStack);
+        }
         FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
 
         GL11.glPushMatrix();

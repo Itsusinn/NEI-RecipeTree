@@ -25,6 +25,8 @@ public final class FluidStacks {
     private static final Logger LOG = LogManager.getLogger("neirecipetree");
     /** Tag GT's {@code ItemFluidDisplay} uses for the volume in mB. */
     private static final String GT_AMOUNT_TAG = "mFluidDisplayAmount";
+    /** Tag that tells GT's fluid display renderer to skip its volume label. */
+    private static final String GT_HIDE_AMOUNT_TAG = "mHideStackSize";
     /** Compound AE2FC fluid packets and fluid drops keep their {@link FluidStack} in. */
     private static final String AE2_FLUID_TAG = "FluidStack";
 
@@ -73,6 +75,22 @@ public final class FluidStacks {
             return Math.max(1, stack.stackSize);
         }
         return stack.stackSize > 1 ? Math.max(1, volume / stack.stackSize) : volume;
+    }
+
+    /**
+     * Hides the volume label that GT's fluid display renderer draws inside the item icon. The tree
+     * renders its own amount text (which may be a batched total instead of the stack's original
+     * volume), so leaving GT's label on the same icon would print two different amounts on top of
+     * each other.
+     */
+    public static void hideDisplayedAmount(ItemStack stack) {
+        if (!isFluid(stack)) {
+            return;
+        }
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag != null) {
+            tag.setBoolean(GT_HIDE_AMOUNT_TAG, true);
+        }
     }
 
     /**
