@@ -51,6 +51,7 @@ import moe.takochan.neirecipetree.recipe.FluidStacks;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
 import moe.takochan.neirecipetree.recipe.RecipeLookup;
+import moe.takochan.neirecipetree.util.MouseButtons;
 import moe.takochan.neirecipetree.util.SystemFileOpener;
 
 public class GuiRecipeTree extends GuiScreen {
@@ -1092,6 +1093,10 @@ public class GuiRecipeTree extends GuiScreen {
     @Override
     public void handleMouseInput() {
         super.handleMouseInput();
+        if (MouseButtons.backPressed()) {
+            returnToSelector();
+            return;
+        }
         int scroll = Mouse.getEventDWheel();
         if (scroll != 0) {
             ScaledResolution sr = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
@@ -1121,9 +1126,7 @@ public class GuiRecipeTree extends GuiScreen {
             mc.displayGuiScreen(null);
             mc.setIngameFocus();
         } else if (keyCode == Keyboard.KEY_E) {
-            BoM.pendingResolution = null;
-            TreeStorage.setLastView(TreeStorage.View.SELECTOR);
-            mc.displayGuiScreen(parentScreen);
+            returnToSelector();
         } else if (keyCode == 211) { // DELETE key
             if (isShiftKeyDown()) {
                 // Shift+Delete: drop this tree from the manager and close
@@ -1135,6 +1138,13 @@ public class GuiRecipeTree extends GuiScreen {
                 resetTree();
             }
         }
+    }
+
+    private void returnToSelector() {
+        BoM.pendingResolution = null;
+        TreeStorage.setLastView(TreeStorage.View.SELECTOR);
+        GuiScreen selector = parentScreen instanceof GuiTreeManager ? parentScreen : new GuiTreeManager(parentScreen);
+        mc.displayGuiScreen(selector);
     }
 
     private void resetTree() {

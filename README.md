@@ -61,6 +61,8 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 合成树一旦建立，打开背包界面时左下角（快捷栏左侧）会出现一个按钮（图标是当前选中树的产物）。点击后会按照上次关闭时的界面，直接回到当前合成树，或打开**合成树列表**：
 
 - 左键点击条目：切换并打开该树
+- 鼠标前进键：打开当前合成树
+- 鼠标后退键：关闭列表
 - 右侧 `X`：删除该树
 - `新建`：用光标上拿着的物品新建一棵树（没有手持物品时按钮置灰）
 - 滚动滚轮：条目超过 7 个时翻页
@@ -79,6 +81,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 | `Del` | 重置整棵树 |
 | `Esc` | 直接关闭配方树界面，返回游戏 |
 | `E` | 返回打开配方树前的选择页面 |
+| `鼠标后退键` | 返回合成树列表 |
 | `Shift + Del` | 关闭界面 |
 | `滚轮（批次面板）` | 数量 `±1` |
 | `Shift + 滚轮（批次面板）` | 数量 `±16` |
@@ -180,6 +183,8 @@ If an item has multiple valid recipes, you can either:
 Once a tree exists, opening your inventory shows a button at the bottom-left (left of the hotbar, its icon is the selected tree's goal). Clicking it returns to the screen the tree was last closed from: the active tree, or the **tree list**:
 
 - left-click a row to switch to and open that tree
+- mouse forward button opens the active tree
+- mouse back button closes the list
 - the `X` on the right deletes that tree
 - `New` creates a tree from the item held on the cursor (greyed out when the cursor is empty)
 - the mouse wheel pages through the list when there are more than 7 trees
@@ -198,6 +203,7 @@ The button stays visible even when the list is empty, so a tree can always be st
 | `Del` | Reset the entire tree |
 | `Esc` | Close the recipe tree screen and return to the game |
 | `E` | Return to the selection screen the tree was opened from |
+| `Mouse back` | Return to the tree list |
 | `Shift + Del` | Close the screen |
 | `Mouse wheel (batch panel)` | Change amount by `±1` |
 | `Shift + mouse wheel (batch panel)` | Change amount by `±16` |

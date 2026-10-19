@@ -9,6 +9,7 @@ import org.lwjgl.input.Mouse;
 import moe.takochan.neirecipetree.bom.BoM;
 import moe.takochan.neirecipetree.bom.MaterialTree;
 import moe.takochan.neirecipetree.bom.TreeStorage;
+import moe.takochan.neirecipetree.util.MouseButtons;
 
 /**
  * Lists the recipe trees opened in this session and lets the player switch between them, create a
@@ -228,6 +229,14 @@ public class GuiTreeManager extends GuiScreen {
     @Override
     public void handleMouseInput() {
         super.handleMouseInput();
+        if (MouseButtons.backPressed()) {
+            closeSelector();
+            return;
+        }
+        if (MouseButtons.forwardPressed()) {
+            openActiveTree();
+            return;
+        }
         int wheel = Mouse.getEventDWheel();
         if (wheel == 0 || BoM.trees.size() <= visibleRows) {
             return;
@@ -238,9 +247,21 @@ public class GuiTreeManager extends GuiScreen {
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
         if (keyCode == 1) { // ESC
-            TreeStorage.setLastView(TreeStorage.View.SELECTOR);
-            mc.displayGuiScreen(parentScreen);
+            closeSelector();
         }
+    }
+
+    private void closeSelector() {
+        TreeStorage.setLastView(TreeStorage.View.SELECTOR);
+        mc.displayGuiScreen(parentScreen);
+    }
+
+    private void openActiveTree() {
+        if (BoM.tree == null) {
+            return;
+        }
+        TreeStorage.setLastView(TreeStorage.View.TREE);
+        mc.displayGuiScreen(new GuiRecipeTree(this));
     }
 
     @Override
