@@ -12,6 +12,7 @@ import net.minecraft.nbt.NBTTagList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import moe.takochan.neirecipetree.PersistenceLoader;
 import moe.takochan.neirecipetree.recipe.FluidStacks;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 
@@ -34,7 +35,8 @@ public final class AlternativePreferences {
 
     private static final Map<ItemStackKey, ItemStackKey> choices = new HashMap<>();
     private static File file;
-    private static boolean loaded;
+    private static volatile boolean loaded;
+    private static volatile Map<ItemStackKey, ItemStackKey> snapshot;
 
     private AlternativePreferences() {}
 
@@ -124,21 +126,53 @@ public final class AlternativePreferences {
     }
 
     /**
-     * Reads the stored choices once, lazily, alongside the tree store.
+     * Reads the stored choices, joining the background deserialization if it has not finished yet.
      */
     public static void load() {
         if (loaded) {
             return;
         }
-        loaded = true;
-        File source = file;
-        if (source == null || !source.isFile()) {
+        PersistenceLoader.awaitAlternatives();
+        if (loaded) {
             return;
+        }
+        synchronized (AlternativePreferences.class) {
+            if (loaded) {
+                return;
+            }
+            Map<ItemStackKey, ItemStackKey> data = snapshot;
+            if (data == null) {
+                data = readSnapshot(file);
+            }
+            if (data != null && !data.isEmpty()) {
+                choices.putAll(data);
+                LOG.info("Loaded {} remembered alternative choice(s)", data.size());
+            }
+            loaded = true;
+        }
+    }
+
+    /** Starts deserializing the alternative store on the background loader thread. */
+    public static void loadAsync() {
+        Map<ItemStackKey, ItemStackKey> data = readSnapshot(file);
+        snapshot = data;
+        if (data != null) {
+            LOG.debug("Deserialized {} alternative choice(s) in the background", data.size());
+        }
+    }
+
+    /**
+     * Reads the stored choices into plain data. Runs on the background loader, so it must not touch
+     * the live {@link #choices} map.
+     */
+    private static Map<ItemStackKey, ItemStackKey> readSnapshot(File source) {
+        if (source == null || !source.isFile()) {
+            return new HashMap<>();
         }
         try {
             NBTTagCompound root = CompressedStreamTools.read(source);
             NBTTagList entries = root.getTagList("entries", NBT_COMPOUND);
-            int loadedEntries = 0;
+            Map<ItemStackKey, ItemStackKey> result = new HashMap<>();
             for (int i = 0; i < entries.tagCount(); i++) {
                 NBTTagCompound entry = entries.getCompoundTagAt(i);
                 ItemStack slot = TreeStorage.readStack(entry.getCompoundTag("slot"));
@@ -150,15 +184,13 @@ public final class AlternativePreferences {
                 ItemStackKey slotKey = keyOf(slot);
                 ItemStackKey chosenKey = keyOf(chosen);
                 if (slotKey != null && chosenKey != null) {
-                    choices.put(slotKey, chosenKey);
-                    loadedEntries++;
+                    result.put(slotKey, chosenKey);
                 }
             }
-            if (loadedEntries > 0) {
-                LOG.info("Loaded {} remembered alternative choice(s)", loadedEntries);
-            }
+            return result;
         } catch (Exception e) {
             LOG.warn("Could not read {}: {}", source, e.toString());
+            return null;
         }
     }
 

@@ -21,6 +21,7 @@ import com.google.gson.JsonParser;
 
 import codechicken.nei.recipe.Recipe.RecipeId;
 import codechicken.nei.recipe.RecipeHandlerRef;
+import moe.takochan.neirecipetree.PersistenceLoader;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
 
@@ -40,21 +41,46 @@ public final class TreeStorage {
     private static final int NBT_COMPOUND = 10;
 
     private static File file;
-    private static boolean loading;
-    private static boolean loaded;
+    private static volatile boolean loaded;
+    private static volatile TreeSnapshot snapshot;
     private static final Map<MaterialTree, List<PendingResolution>> pendingResolutions = new IdentityHashMap<>();
 
     private static final class PendingResolution {
 
         final ItemStackKey key;
-        /** NEI's stable recipe identity, serialized with {@link RecipeId#toJsonObject()}. */
-        final String recipeIdJson;
+        /** NEI's stable recipe identity, already parsed from its stored JSON. */
+        final RecipeId recipeId;
         final boolean cleared;
 
-        PendingResolution(ItemStackKey key, String recipeIdJson, boolean cleared) {
+        PendingResolution(ItemStackKey key, RecipeId recipeId, boolean cleared) {
             this.key = key;
-            this.recipeIdJson = recipeIdJson;
+            this.recipeId = recipeId;
             this.cleared = cleared;
+        }
+    }
+
+    /** Plain data produced by the background reader; no live tree objects are created there. */
+    private static final class TreeSnapshot {
+
+        final List<SavedTree> trees;
+        final int active;
+
+        TreeSnapshot(List<SavedTree> trees, int active) {
+            this.trees = trees;
+            this.active = active;
+        }
+    }
+
+    private static final class SavedTree {
+
+        final ItemStack goal;
+        final long batches;
+        final List<PendingResolution> resolutions;
+
+        SavedTree(ItemStack goal, long batches, List<PendingResolution> resolutions) {
+            this.goal = goal;
+            this.batches = batches;
+            this.resolutions = resolutions;
         }
     }
 
@@ -71,25 +97,75 @@ public final class TreeStorage {
         file = new File(configDir, FILE_NAME);
     }
 
+    /** Starts deserializing the save file on the background loader thread. */
+    public static void loadAsync() {
+        TreeSnapshot data = readSnapshot(file);
+        snapshot = data;
+        if (data != null) {
+            LOG.debug("Deserialized {} saved tree(s) in the background", data.trees.size());
+        }
+    }
+
     /**
-     * Rebuilds the in-memory tree list from disk. Trees are restored without calculating their
-     * recipe chain: the chain is built by {@link BoM#activate(MaterialTree)} or by the tree screen,
-     * so startup does not pay for every saved tree.
+     * Restores the in-memory tree list, joining the background deserialization if it has not
+     * finished yet. Trees are restored without calculating their recipe chain: the chain is built
+     * by {@link BoM#activate(MaterialTree)} or by the tree screen, so startup does not pay for every
+     * saved tree.
      */
     public static void load() {
         if (loaded) {
             return;
         }
-        loaded = true;
-        File source = file;
-        if (source == null || !source.isFile()) {
+        PersistenceLoader.awaitTrees();
+        if (loaded) {
             return;
         }
-        loading = true;
+        synchronized (TreeStorage.class) {
+            if (loaded) {
+                return;
+            }
+            TreeSnapshot data = snapshot;
+            if (data == null) {
+                data = readSnapshot(file);
+            }
+            if (data != null) {
+                applySnapshot(data);
+            }
+            loaded = true;
+        }
+    }
+
+    private static void applySnapshot(TreeSnapshot data) {
+        BoM.trees.clear();
+        for (SavedTree saved : data.trees) {
+            MaterialTree tree = new MaterialTree(saved.goal, false);
+            tree.batches = saved.batches;
+            if (!saved.resolutions.isEmpty()) {
+                pendingResolutions.put(tree, saved.resolutions);
+            }
+            BoM.trees.add(tree);
+        }
+        if (!BoM.trees.isEmpty()) {
+            int active = Math.max(0, Math.min(BoM.trees.size() - 1, data.active));
+            BoM.tree = BoM.trees.get(active);
+        }
+        if (!data.trees.isEmpty()) {
+            LOG.info("Restored {} recipe tree(s)", data.trees.size());
+        }
+    }
+
+    /**
+     * Reads the whole save file into plain data. Runs on the background loader, so it must not touch
+     * the live tree list or NEI handlers.
+     */
+    private static TreeSnapshot readSnapshot(File source) {
+        if (source == null || !source.isFile()) {
+            return new TreeSnapshot(new ArrayList<>(), 0);
+        }
         try {
             NBTTagCompound root = CompressedStreamTools.read(source);
             NBTTagList entries = root.getTagList("trees", NBT_COMPOUND);
-            int restored = 0;
+            List<SavedTree> trees = new ArrayList<>();
             for (int i = 0; i < entries.tagCount(); i++) {
                 NBTTagCompound entry = entries.getCompoundTagAt(i);
                 ItemStack goal = readStack(entry.getCompoundTag("goal"));
@@ -97,23 +173,52 @@ public final class TreeStorage {
                     // The item no longer exists, for example after a mod was removed
                     continue;
                 }
-                MaterialTree tree = new MaterialTree(goal, false);
-                tree.batches = Math.max(1L, entry.getLong("batches"));
-                readResolutions(tree, entry.getTagList("resolutions", NBT_COMPOUND));
-                BoM.trees.add(tree);
-                restored++;
+                trees.add(
+                    new SavedTree(
+                        goal,
+                        Math.max(1L, entry.getLong("batches")),
+                        readResolutions(entry.getTagList("resolutions", NBT_COMPOUND))));
             }
-            if (!BoM.trees.isEmpty()) {
-                int active = Math.max(0, Math.min(BoM.trees.size() - 1, root.getInteger("active")));
-                BoM.tree = BoM.trees.get(active);
-            }
-            if (restored > 0) {
-                LOG.info("Restored {} recipe tree(s)", restored);
-            }
+            return new TreeSnapshot(trees, root.getInteger("active"));
         } catch (Exception e) {
             LOG.warn("Could not read {}: {}", source, e.toString());
-        } finally {
-            loading = false;
+            return null;
+        }
+    }
+
+    private static List<PendingResolution> readResolutions(NBTTagList entries) {
+        List<PendingResolution> pending = new ArrayList<>();
+        for (int i = 0; i < entries.tagCount(); i++) {
+            NBTTagCompound entry = entries.getCompoundTagAt(i);
+            ItemStackKey key = ItemStackKey.of(readStack(entry.getCompoundTag("key")));
+            if (key == null) {
+                continue;
+            }
+            if (entry.getBoolean("cleared")) {
+                pending.add(new PendingResolution(key, null, true));
+                continue;
+            }
+            // Stored as bytes, not an NBT string: recipe ids embed every ingredient's NBT and a
+            // large GregTech recipe can exceed the 64 KiB limit of a string tag.
+            RecipeId recipeId = parseRecipeId(entry.getByteArray("recipeId"));
+            if (recipeId != null) {
+                pending.add(new PendingResolution(key, recipeId, false));
+            }
+        }
+        return pending;
+    }
+
+    private static RecipeId parseRecipeId(byte[] bytes) {
+        if (bytes.length == 0) {
+            return null;
+        }
+        try {
+            JsonObject object = new JsonParser().parse(new String(bytes, StandardCharsets.UTF_8))
+                .getAsJsonObject();
+            return RecipeId.of(object);
+        } catch (Exception e) {
+            LOG.debug("Could not parse a saved recipe id: {}", e.toString());
+            return null;
         }
     }
 
@@ -141,38 +246,10 @@ public final class TreeStorage {
         return stack;
     }
 
-    private static void readResolutions(MaterialTree tree, NBTTagList entries) {
-        if (entries.tagCount() == 0) {
-            return;
-        }
-        List<PendingResolution> pending = new ArrayList<>();
-        for (int i = 0; i < entries.tagCount(); i++) {
-            NBTTagCompound entry = entries.getCompoundTagAt(i);
-            ItemStackKey key = ItemStackKey.of(readStack(entry.getCompoundTag("key")));
-            if (key == null) {
-                continue;
-            }
-            if (entry.getBoolean("cleared")) {
-                pending.add(new PendingResolution(key, null, true));
-                continue;
-            }
-            // Stored as bytes, not an NBT string: recipe ids embed every ingredient's NBT and a
-            // large GregTech recipe can exceed the 64 KiB limit of a string tag.
-            byte[] recipeIdBytes = entry.getByteArray("recipeId");
-            if (recipeIdBytes.length == 0) {
-                continue;
-            }
-            pending.add(new PendingResolution(key, new String(recipeIdBytes, StandardCharsets.UTF_8), false));
-        }
-        if (!pending.isEmpty()) {
-            pendingResolutions.put(tree, pending);
-        }
-    }
-
     /**
      * Applies the saved node recipes to {@code tree} before it is recalculated. Called when the tree
-     * is first opened; resolving a handler is deferred until this point because NEI recipe handlers
-     * are not available while the tree list itself is being loaded.
+     * is first opened; resolving a {@link RecipeId} to a handler happens here because NEI's handlers
+     * are not thread-safe.
      */
     public static void applyResolutions(MaterialTree tree) {
         List<PendingResolution> pending = pendingResolutions.remove(tree);
@@ -186,15 +263,15 @@ public final class TreeStorage {
                     tree.resolutions.put(resolution.key, null);
                     continue;
                 }
-                NEIRecipeRef ref = resolveRecipeId(resolution.recipeIdJson);
-                if (ref == null) {
+                RecipeHandlerRef handlerRef = RecipeHandlerRef.of(resolution.recipeId);
+                if (handlerRef == null) {
                     LOG.debug(
                         "Could not restore recipe for {}",
                         resolution.key.toItemStack()
                             .getDisplayName());
                     continue;
                 }
-                tree.resolutions.put(resolution.key, ref);
+                tree.resolutions.put(resolution.key, new NEIRecipeRef(handlerRef.handler, handlerRef.recipeIndex));
                 applied++;
             } catch (Exception e) {
                 LOG.warn("Could not restore a saved recipe: {}", e.toString());
@@ -203,33 +280,6 @@ public final class TreeStorage {
         if (applied > 0) {
             LOG.debug("Restored {} node recipe selection(s)", applied);
         }
-    }
-
-    /**
-     * Restores a recipe through NEI's own stable identity.
-     *
-     * <p>
-     * The handler id is only {@code getClass().getName()} by default, so every GregTech machine
-     * handler shares {@code gregtech.nei.GTNEIDefaultHandler}; pairing it with a recipe index can
-     * bind the saved choice to a different machine after a restart. A {@link RecipeId} keeps the
-     * handler registration name and the actual ingredients/result, which is what NEI bookmarks use
-     * to find a recipe again in a later session.
-     */
-    private static NEIRecipeRef resolveRecipeId(String json) {
-        if (json == null || json.isEmpty()) {
-            return null;
-        }
-        try {
-            JsonObject object = new JsonParser().parse(json)
-                .getAsJsonObject();
-            RecipeHandlerRef ref = RecipeHandlerRef.of(RecipeId.of(object));
-            if (ref != null) {
-                return new NEIRecipeRef(ref.handler, ref.recipeIndex);
-            }
-        } catch (Exception e) {
-            LOG.debug("Could not resolve a saved recipe id: {}", e.toString());
-        }
-        return null;
     }
 
     /**
@@ -276,7 +326,7 @@ public final class TreeStorage {
      * Writes the current tree list. Called whenever a tree is added, removed, or selected.
      */
     public static void save() {
-        if (!loaded || loading) {
+        if (!loaded) {
             return;
         }
         File target = file;

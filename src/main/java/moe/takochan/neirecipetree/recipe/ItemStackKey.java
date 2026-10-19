@@ -25,7 +25,9 @@ public class ItemStackKey {
     }
 
     private int computeHashCode() {
-        int result = Item.getIdFromItem(item);
+        // Item identity, not Item.getIdFromItem(): EndlessIDs can remap numeric ids during a
+        // session, and the cached hash must stay consistent with equals(), which compares identity.
+        int result = System.identityHashCode(item);
         result = 31 * result + damage;
         result = 31 * result + (nbt != null ? nbt.hashCode() : 0);
         return result;
