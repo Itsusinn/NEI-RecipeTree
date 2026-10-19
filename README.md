@@ -44,7 +44,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - **可替换物品（多候选槽位）**：NEI 在 `PositionedStack.items` 中给出槽位的全部候选物品，旧实现只取第一项。当第一项本身没有配方时，节点会误判为原材料；现在会自动回退到可分解的候选，并支持手动切换（见上方“主要功能”）。
 - **液体需求量合并**：GT 把液体体积写在展示物的 NBT 里（`mFluidDisplayAmount`），物品堆叠数恒为 1，所以同一液体在不同配方中的需求会被当成不同物品、在总材料成本里各占一行。现在按 `StackInfo#getFluid` 读出体积并以 mB 参与计算，统计时用“去掉体积后的展示物”作为聚合键，同一液体只保留一行、体积累加（显示为 `3000L`）。
 - **液体数量标签不再重叠**：GT 的流体展示物会在图标内再绘制一遍 NBT 里的体积，而树本身也会绘制节点数量和总成本数量，两串数字会叠在同一个图标上。现在树内绘制带数量标签的物品时会给展示物加上 `mHideStackSize`，隐藏 GT 的内置体积文字，只显示按当前批次算出的数量。
-- **重启后保留合成树**：合成树列表原先只存在内存里，重启后列表为空，背包按钮也随之隐藏。现在每棵树的产物与批次会写入 `config/neirecipetree_trees.dat`，启动时恢复列表；配方链在真正打开树时再向 NEI 解析，避免拖慢启动。背包按钮也改为常驻，列表为空时仍可从光标或背包里最后悬停的物品新建一棵树。
+- **重启后保留合成树**：合成树列表原先只存在内存里，重启后列表为空，背包按钮也随之隐藏。现在每棵树的产物、批次和每个节点的配方选择都会写入 `config/neirecipetree_trees.dat`；打开树时先套用已保存的选择，其余节点再向 NEI 解析。背包按钮也改为常驻，列表为空时仍可从光标或背包里最后悬停的物品新建一棵树。
 
 ### 使用方式
 
@@ -160,7 +160,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 - **Substitutable items (multi-candidate slots)**: NEI reports every candidate of a slot in `PositionedStack.items`, but the tree used to keep only the first entry, so a slot whose first candidate has no recipe was mistaken for a raw material. The tree now falls back to a decomposable candidate and lets you switch between them (see *Features*).
 - **Fluid requirement merging**: GT stores a fluid's volume in the display item's NBT (`mFluidDisplayAmount`) while the stack size stays `1`, so the same fluid requested by different recipes looked like different items and took one row each in the total cost. The volume is now read through `StackInfo#getFluid` and counted in mB, and costs aggregate on the display item with the volume removed, so a fluid keeps a single row and its volumes add up (rendered as `3000L`).
 - **Fluid amount labels no longer overlap**: GT's fluid display item paints the NBT volume inside its icon as well, so the tree's own node and total-cost amounts ended up stacked on top of it. Items drawn with an amount now get `mHideStackSize` on the display copy, which suppresses GT's built-in volume text and leaves only the amount calculated for the current batch.
-- **Recipe trees survive a restart**: the tree list used to live only in memory, so after a restart the list was empty and the inventory button hid itself. Each tree's goal and batch size are now written to `config/neirecipetree_trees.dat` and restored at startup; the recipe chain is resolved through NEI only when the tree is opened, so startup does not pay for every saved tree. The inventory button is always visible as well, and an empty list can still start a tree from the held item or the last item hovered in the inventory.
+- **Recipe trees survive a restart**: the tree list used to live only in memory, so after a restart the list was empty and the inventory button hid itself. Each tree's goal, batch size, and per-node recipe choices are now written to `config/neirecipetree_trees.dat`; opening a tree applies those choices first and only resolves the remaining nodes through NEI. The inventory button is always visible as well, and an empty list can still start a tree from the held item or the last item hovered in the inventory.
 
 ### Usage
 

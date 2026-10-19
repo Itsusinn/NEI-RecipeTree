@@ -43,6 +43,7 @@ import moe.takochan.neirecipetree.bom.ChanceState;
 import moe.takochan.neirecipetree.bom.FlatMaterialCost;
 import moe.takochan.neirecipetree.bom.FoldState;
 import moe.takochan.neirecipetree.bom.MaterialNode;
+import moe.takochan.neirecipetree.bom.TreeStorage;
 import moe.takochan.neirecipetree.recipe.FluidStacks;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
@@ -123,6 +124,7 @@ public class GuiRecipeTree extends GuiScreen {
         super.initGui();
         if (BoM.tree != null) {
             offY = height / -3.0;
+            TreeStorage.applyResolutions(BoM.tree);
         }
         recalculateTree();
 

@@ -85,6 +85,7 @@ public class BoM {
         }
         tree = target;
         craftingMode = false;
+        TreeStorage.applyResolutions(target);
         recalculate();
         TreeStorage.save();
     }

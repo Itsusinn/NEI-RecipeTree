@@ -1,6 +1,10 @@
 package moe.takochan.neirecipetree.bom;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -11,24 +15,46 @@ import net.minecraft.nbt.NBTTagList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import codechicken.nei.recipe.GuiCraftingRecipe;
+import codechicken.nei.recipe.ICraftingHandler;
+import moe.takochan.neirecipetree.recipe.ItemStackKey;
+import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
+import moe.takochan.neirecipetree.recipe.RecipeLookup;
+
 /**
  * Keeps the list of opened recipe trees across game restarts.
  *
  * <p>
- * Only the tree goal and batch size are written; the recipe chain is rebuilt from NEI on demand
- * when the tree is opened. The goal is enough to restore the inventory button's tree list, and
- * keeping the file small avoids a long recipe scan while the game is still starting.
+ * Each tree stores its goal, batch size, and the recipes chosen for its nodes. The recipe chain is
+ * still built lazily when the tree is opened, but the saved choices are applied first, so a tree
+ * comes back with the same branches instead of being re-resolved from NEI defaults.
  */
 public final class TreeStorage {
 
     private static final Logger LOG = LogManager.getLogger("neirecipetree");
     private static final String FILE_NAME = "neirecipetree_trees.dat";
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = 3;
     private static final int NBT_COMPOUND = 10;
 
     private static File file;
     private static boolean loading;
     private static boolean loaded;
+    private static final Map<MaterialTree, List<PendingResolution>> pendingResolutions = new IdentityHashMap<>();
+
+    private static final class PendingResolution {
+
+        final ItemStackKey key;
+        final String handlerId;
+        final int recipeIndex;
+        final boolean cleared;
+
+        PendingResolution(ItemStackKey key, String handlerId, int recipeIndex, boolean cleared) {
+            this.key = key;
+            this.handlerId = handlerId;
+            this.recipeIndex = recipeIndex;
+            this.cleared = cleared;
+        }
+    }
 
     private TreeStorage() {}
 
@@ -64,13 +90,14 @@ public final class TreeStorage {
             int restored = 0;
             for (int i = 0; i < entries.tagCount(); i++) {
                 NBTTagCompound entry = entries.getCompoundTagAt(i);
-                ItemStack goal = readGoal(entry.getCompoundTag("goal"));
+                ItemStack goal = readStack(entry.getCompoundTag("goal"));
                 if (goal == null || goal.getItem() == null) {
                     // The item no longer exists, for example after a mod was removed
                     continue;
                 }
                 MaterialTree tree = new MaterialTree(goal, false);
                 tree.batches = Math.max(1L, entry.getLong("batches"));
+                readResolutions(tree, entry.getTagList("resolutions", NBT_COMPOUND));
                 BoM.trees.add(tree);
                 restored++;
             }
@@ -89,27 +116,129 @@ public final class TreeStorage {
     }
 
     /**
-     * Reads a goal written by this version or by the old numeric-id format.
+     * Reads a stack written by this version or by the old numeric-id format.
      */
-    private static ItemStack readGoal(NBTTagCompound goal) {
-        String name = goal.getString("name");
+    private static ItemStack readStack(NBTTagCompound tag) {
+        String name = tag.getString("name");
         if (!name.isEmpty()) {
             Object registered = Item.itemRegistry.getObject(name);
             if (registered instanceof Item) {
                 ItemStack stack = new ItemStack(
                     (Item) registered,
-                    Math.max(1, goal.getInteger("count")),
-                    goal.getInteger("damage"));
-                if (goal.hasKey("tag", NBT_COMPOUND)) {
+                    Math.max(1, tag.getInteger("count")),
+                    tag.getInteger("damage"));
+                if (tag.hasKey("tag", NBT_COMPOUND)) {
                     stack.setTagCompound(
-                        (NBTTagCompound) goal.getCompoundTag("tag")
+                        (NBTTagCompound) tag.getCompoundTag("tag")
                             .copy());
                 }
                 return stack;
             }
         }
-        // Format v1 stored only the numeric id; keep reading old files
-        return ItemStack.loadItemStackFromNBT(goal);
+        // Format v1/v2 stored only the numeric id; keep reading old files
+        return ItemStack.loadItemStackFromNBT(tag);
+    }
+
+    private static void readResolutions(MaterialTree tree, NBTTagList entries) {
+        if (entries.tagCount() == 0) {
+            return;
+        }
+        List<PendingResolution> pending = new ArrayList<>();
+        for (int i = 0; i < entries.tagCount(); i++) {
+            NBTTagCompound entry = entries.getCompoundTagAt(i);
+            ItemStackKey key = ItemStackKey.of(readStack(entry.getCompoundTag("key")));
+            if (key == null) {
+                continue;
+            }
+            if (entry.getBoolean("cleared")) {
+                pending.add(new PendingResolution(key, null, -1, true));
+            } else {
+                pending.add(new PendingResolution(key, entry.getString("handler"), entry.getInteger("index"), false));
+            }
+        }
+        if (!pending.isEmpty()) {
+            pendingResolutions.put(tree, pending);
+        }
+    }
+
+    /**
+     * Applies the saved node recipes to {@code tree} before it is recalculated. Called when the tree
+     * is first opened; resolving a handler is deferred until this point because NEI recipe handlers
+     * are not available while the tree list itself is being loaded.
+     */
+    public static void applyResolutions(MaterialTree tree) {
+        List<PendingResolution> pending = pendingResolutions.remove(tree);
+        if (pending == null) {
+            return;
+        }
+        int applied = 0;
+        for (PendingResolution resolution : pending) {
+            try {
+                if (resolution.cleared) {
+                    tree.resolutions.put(resolution.key, null);
+                    continue;
+                }
+                NEIRecipeRef ref = resolveRecipe(resolution.key, resolution.handlerId, resolution.recipeIndex);
+                if (ref == null) {
+                    LOG.debug(
+                        "Could not restore recipe {}:{} for {}",
+                        resolution.handlerId,
+                        resolution.recipeIndex,
+                        resolution.key.toItemStack()
+                            .getDisplayName());
+                    continue;
+                }
+                tree.resolutions.put(resolution.key, ref);
+                applied++;
+            } catch (Exception e) {
+                LOG.warn("Could not restore a saved recipe: {}", e.toString());
+            }
+        }
+        if (applied > 0) {
+            LOG.debug("Restored {} node recipe selection(s)", applied);
+        }
+    }
+
+    private static NEIRecipeRef resolveRecipe(ItemStackKey key, String handlerId, int recipeIndex) {
+        if (handlerId == null || handlerId.isEmpty() || recipeIndex < 0) {
+            return null;
+        }
+        // Prefer the filtered list: the recipe must actually produce this node's item
+        for (NEIRecipeRef ref : RecipeLookup.findRecipes(key.toItemStack())) {
+            if (ref.recipeIndex == recipeIndex && handlerId.equals(ref.handler.getHandlerId())) {
+                return ref;
+            }
+        }
+        // Secondary outputs are not always returned by the item lookup, so fall back to the full
+        // handler list and trust the stored handler id/index
+        if (GuiCraftingRecipe.craftinghandlers != null) {
+            for (ICraftingHandler handler : GuiCraftingRecipe.craftinghandlers) {
+                if (handlerId.equals(handler.getHandlerId()) && recipeIndex < handler.numRecipes()) {
+                    return new NEIRecipeRef(handler, recipeIndex);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static NBTTagCompound writeStack(ItemStack stack) {
+        NBTTagCompound tag = new NBTTagCompound();
+        // Keep the numeric fields too, so a registry name that disappeared in a later session can
+        // still fall back to the old loader
+        stack.writeToNBT(tag);
+        String name = Item.itemRegistry.getNameForObject(stack.getItem());
+        if (name != null) {
+            tag.setString("name", name);
+        }
+        tag.setInteger("count", Math.max(1, stack.stackSize));
+        tag.setInteger("damage", stack.getItemDamage());
+        if (stack.getTagCompound() != null) {
+            tag.setTag(
+                "tag",
+                stack.getTagCompound()
+                    .copy());
+        }
+        return tag;
     }
 
     /**
@@ -127,6 +256,12 @@ public final class TreeStorage {
             NBTTagCompound root = new NBTTagCompound();
             root.setInteger("version", FORMAT_VERSION);
 
+            // A save can happen before a restored tree has been opened (for example when the T
+            // button appends a tree). Apply its pending choices first so they are not overwritten.
+            for (MaterialTree tree : BoM.trees) {
+                applyResolutions(tree);
+            }
+
             NBTTagList entries = new NBTTagList();
             for (MaterialTree tree : BoM.trees) {
                 if (tree == null || tree.goal == null
@@ -135,26 +270,31 @@ public final class TreeStorage {
                     continue;
                 }
                 ItemStack ingredient = tree.goal.ingredient;
-                NBTTagCompound goal = new NBTTagCompound();
-                // Keep the numeric fields too, so a registry name that disappeared in a later
-                // session can still fall back to the old loader
-                ingredient.writeToNBT(goal);
-                String name = Item.itemRegistry.getNameForObject(ingredient.getItem());
-                if (name != null) {
-                    goal.setString("name", name);
-                }
-                goal.setInteger("count", Math.max(1, ingredient.stackSize));
-                goal.setInteger("damage", ingredient.getItemDamage());
-                if (ingredient.getTagCompound() != null) {
-                    goal.setTag(
-                        "tag",
-                        ingredient.getTagCompound()
-                            .copy());
+                NBTTagCompound goal = writeStack(ingredient);
+
+                NBTTagList resolutionTags = new NBTTagList();
+                for (Map.Entry<ItemStackKey, NEIRecipeRef> resolution : tree.resolutions.entrySet()) {
+                    ItemStackKey key = resolution.getKey();
+                    if (key == null) {
+                        continue;
+                    }
+                    NBTTagCompound resolutionTag = new NBTTagCompound();
+                    resolutionTag.setTag("key", writeStack(key.toItemStack()));
+                    NEIRecipeRef ref = resolution.getValue();
+                    if (ref == null) {
+                        resolutionTag.setBoolean("cleared", true);
+                    } else {
+                        String handlerId = ref.handler.getHandlerId();
+                        resolutionTag.setString("handler", handlerId == null ? "" : handlerId);
+                        resolutionTag.setInteger("index", ref.recipeIndex);
+                    }
+                    resolutionTags.appendTag(resolutionTag);
                 }
 
                 NBTTagCompound entry = new NBTTagCompound();
                 entry.setTag("goal", goal);
                 entry.setLong("batches", Math.max(1L, tree.batches));
+                entry.setTag("resolutions", resolutionTags);
                 entries.appendTag(entry);
             }
             root.setTag("trees", entries);
