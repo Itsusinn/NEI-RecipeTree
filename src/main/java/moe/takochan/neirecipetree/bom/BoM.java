@@ -227,6 +227,9 @@ public class BoM {
                 recipeIndices.remove(key);
                 userExpandedNodes.remove(key);
                 tree.recalculate();
+                // Persist immediately: a save used to happen only when a tree was opened or the list
+                // changed, so every choice made afterwards was lost on the next restart.
+                TreeStorage.save();
             }
         }
     }
@@ -238,12 +241,19 @@ public class BoM {
         }
 
         if (tree.resolutions.containsKey(key) || addedRecipes.containsKey(key) || defaultRecipes.containsKey(key)) {
-            clearResolution(stack);
+            // Same bookkeeping as clearResolution, but without its save: this method saves once at
+            // the end with the new recipe already in place.
+            tree.resolutions.put(key, null);
+            addedRecipes.remove(key);
+            defaultRecipes.remove(key);
+            recipeIndices.remove(key);
+            userExpandedNodes.remove(key);
         }
 
         disabledRecipes.remove(recipe);
         addResolution(stack, recipe);
         addedRecipes.put(key, recipe);
+        TreeStorage.save();
     }
 
     /**

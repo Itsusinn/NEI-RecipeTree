@@ -244,6 +244,9 @@ public class GuiRecipeTree extends GuiScreen {
         // Clean up NEI widget references to prevent state leaks
         recipeTooltipHandler = null;
         recipeTooltipRef = null;
+        // Fold states, batch changes and anything else changed in this screen belong to the saved
+        // tree, so write them when the screen closes as well.
+        TreeStorage.save();
     }
 
     @Override
@@ -1010,6 +1013,7 @@ public class GuiRecipeTree extends GuiScreen {
                     long delta = scroll > 0 ? multiplier : -multiplier;
                     BoM.tree.batches = Math.max(1L, Math.min(MAX_BATCH_AMOUNT, BoM.tree.batches + delta));
                     recalculateTree();
+                    TreeStorage.save();
                     return;
                 }
             }
@@ -1050,6 +1054,7 @@ public class GuiRecipeTree extends GuiScreen {
             }
         }
         recalculateTree();
+        TreeStorage.save();
     }
 
     /**

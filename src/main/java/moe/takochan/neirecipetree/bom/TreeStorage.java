@@ -1,6 +1,7 @@
 package moe.takochan.neirecipetree.bom;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -15,8 +16,13 @@ import net.minecraft.nbt.NBTTagList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import codechicken.nei.recipe.GuiCraftingRecipe;
 import codechicken.nei.recipe.ICraftingHandler;
+import codechicken.nei.recipe.Recipe.RecipeId;
+import codechicken.nei.recipe.RecipeHandlerRef;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
 import moe.takochan.neirecipetree.recipe.RecipeLookup;
@@ -33,7 +39,7 @@ public final class TreeStorage {
 
     private static final Logger LOG = LogManager.getLogger("neirecipetree");
     private static final String FILE_NAME = "neirecipetree_trees.dat";
-    private static final int FORMAT_VERSION = 3;
+    private static final int FORMAT_VERSION = 4;
     private static final int NBT_COMPOUND = 10;
 
     private static File file;
@@ -44,12 +50,16 @@ public final class TreeStorage {
     private static final class PendingResolution {
 
         final ItemStackKey key;
+        /** NEI's stable recipe identity, serialized with {@link RecipeId#toJsonObject()}. */
+        final String recipeIdJson;
+        /** Legacy identity used by format v3 files and as a fallback for recipes without a RecipeId. */
         final String handlerId;
         final int recipeIndex;
         final boolean cleared;
 
-        PendingResolution(ItemStackKey key, String handlerId, int recipeIndex, boolean cleared) {
+        PendingResolution(ItemStackKey key, String recipeIdJson, String handlerId, int recipeIndex, boolean cleared) {
             this.key = key;
+            this.recipeIdJson = recipeIdJson;
             this.handlerId = handlerId;
             this.recipeIndex = recipeIndex;
             this.cleared = cleared;
@@ -151,9 +161,20 @@ public final class TreeStorage {
                 continue;
             }
             if (entry.getBoolean("cleared")) {
-                pending.add(new PendingResolution(key, null, -1, true));
+                pending.add(new PendingResolution(key, null, null, -1, true));
             } else {
-                pending.add(new PendingResolution(key, entry.getString("handler"), entry.getInteger("index"), false));
+                // Stored as bytes, not an NBT string: recipe ids embed every ingredient's NBT and a
+                // large GregTech recipe can exceed the 64 KiB limit of a string tag.
+                byte[] recipeIdBytes = entry.getByteArray("recipeId");
+                String recipeIdJson = recipeIdBytes.length == 0 ? ""
+                    : new String(recipeIdBytes, StandardCharsets.UTF_8);
+                pending.add(
+                    new PendingResolution(
+                        key,
+                        recipeIdJson,
+                        entry.getString("handler"),
+                        entry.getInteger("index"),
+                        false));
             }
         }
         if (!pending.isEmpty()) {
@@ -178,7 +199,10 @@ public final class TreeStorage {
                     tree.resolutions.put(resolution.key, null);
                     continue;
                 }
-                NEIRecipeRef ref = resolveRecipe(resolution.key, resolution.handlerId, resolution.recipeIndex);
+                NEIRecipeRef ref = resolveRecipeId(resolution.recipeIdJson);
+                if (ref == null) {
+                    ref = resolveRecipe(resolution.key, resolution.handlerId, resolution.recipeIndex);
+                }
                 if (ref == null) {
                     LOG.debug(
                         "Could not restore recipe {}:{} for {}",
@@ -219,6 +243,56 @@ public final class TreeStorage {
             }
         }
         return null;
+    }
+
+    /**
+     * Restores a recipe through NEI's own stable identity.
+     *
+     * <p>
+     * The handler id is only {@code getClass().getName()} by default, so every GregTech machine
+     * handler shares {@code gregtech.nei.GTNEIDefaultHandler}; pairing it with a recipe index can
+     * bind the saved choice to a different machine after a restart. A {@link RecipeId} keeps the
+     * handler registration name and the actual ingredients/result, which is what NEI bookmarks use
+     * to find a recipe again in a later session.
+     */
+    private static NEIRecipeRef resolveRecipeId(String json) {
+        if (json == null || json.isEmpty()) {
+            return null;
+        }
+        try {
+            JsonObject object = new JsonParser().parse(json)
+                .getAsJsonObject();
+            RecipeHandlerRef ref = RecipeHandlerRef.of(RecipeId.of(object));
+            if (ref != null) {
+                return new NEIRecipeRef(ref.handler, ref.recipeIndex);
+            }
+        } catch (Exception e) {
+            LOG.debug("Could not resolve a saved recipe id: {}", e.toString());
+        }
+        return null;
+    }
+
+    /**
+     * Serializes a recipe with NEI's stable identity, or {@code null} when the handler cannot
+     * describe the recipe that way.
+     */
+    private static String recipeIdJson(NEIRecipeRef ref) {
+        if (ref == null || ref.handler == null) {
+            return null;
+        }
+        try {
+            RecipeId id = RecipeId.of(ref.handler, ref.recipeIndex);
+            return id == null ? null
+                : id.toJsonObject()
+                    .toString();
+        } catch (Exception e) {
+            LOG.debug(
+                "Could not serialize recipe {}:{}: {}",
+                ref.handler.getHandlerId(),
+                ref.recipeIndex,
+                e.toString());
+            return null;
+        }
     }
 
     private static NBTTagCompound writeStack(ItemStack stack) {
@@ -284,6 +358,10 @@ public final class TreeStorage {
                     if (ref == null) {
                         resolutionTag.setBoolean("cleared", true);
                     } else {
+                        String recipeId = recipeIdJson(ref);
+                        if (recipeId != null) {
+                            resolutionTag.setByteArray("recipeId", recipeId.getBytes(StandardCharsets.UTF_8));
+                        }
                         String handlerId = ref.handler.getHandlerId();
                         resolutionTag.setString("handler", handlerId == null ? "" : handlerId);
                         resolutionTag.setInteger("index", ref.recipeIndex);
