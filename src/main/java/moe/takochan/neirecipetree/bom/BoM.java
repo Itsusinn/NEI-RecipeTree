@@ -43,6 +43,8 @@ public class BoM {
      * Adds a tree for {@code recipe} (or reuses the one already open for it) and selects it.
      */
     public static MaterialTree setGoal(NEIRecipeRef recipe) {
+        // Make sure trees restored from disk are in the list before appending a new one
+        TreeStorage.load();
         MaterialTree existing = findTreeFor(recipe);
         if (existing != null) {
             activate(existing);
@@ -61,6 +63,8 @@ public class BoM {
      * it.
      */
     public static MaterialTree setGoal(ItemStack goal) {
+        // Make sure trees restored from disk are in the list before appending a new one
+        TreeStorage.load();
         MaterialTree existing = findTreeFor(goal);
         if (existing != null) {
             activate(existing);

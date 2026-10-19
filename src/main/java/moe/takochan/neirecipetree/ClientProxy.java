@@ -22,8 +22,8 @@ public class ClientProxy extends CommonProxy {
         super.init(event);
         // Items are registered by now, so the saved alternative choices can be resolved
         AlternativePreferences.load();
-        // Rebuild the tree list so the inventory button survives a game restart
-        TreeStorage.load();
+        // Trees are restored lazily when the player first opens the inventory, after the server's
+        // item id mapping is in place
         MinecraftForge.EVENT_BUS.register(new InventoryTreeButtonHandler());
     }
 }

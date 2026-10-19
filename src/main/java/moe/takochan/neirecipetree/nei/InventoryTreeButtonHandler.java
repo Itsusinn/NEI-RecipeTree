@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.event.GuiScreenEvent;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import moe.takochan.neirecipetree.bom.TreeStorage;
 import moe.takochan.neirecipetree.gui.GuiTreeManager;
 
 /**
@@ -32,6 +33,10 @@ public class InventoryTreeButtonHandler {
         if (!(event.gui instanceof GuiInventory)) {
             return;
         }
+        // Restore the saved list here rather than at mod init: by the time the player opens the
+        // inventory the server's item id mapping is final, so stored registry names resolve to the
+        // same items that were saved
+        TreeStorage.load();
         GuiScreen gui = event.gui;
         int guiLeft = (gui.width - GUI_WIDTH) / 2;
         int guiTop = (gui.height - GUI_HEIGHT) / 2;

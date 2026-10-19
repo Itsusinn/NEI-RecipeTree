@@ -2,6 +2,7 @@ package moe.takochan.neirecipetree.bom;
 
 import java.io.File;
 
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
@@ -22,11 +23,12 @@ public final class TreeStorage {
 
     private static final Logger LOG = LogManager.getLogger("neirecipetree");
     private static final String FILE_NAME = "neirecipetree_trees.dat";
-    private static final int FORMAT_VERSION = 1;
+    private static final int FORMAT_VERSION = 2;
     private static final int NBT_COMPOUND = 10;
 
     private static File file;
     private static boolean loading;
+    private static boolean loaded;
 
     private TreeStorage() {}
 
@@ -47,6 +49,10 @@ public final class TreeStorage {
      * so startup does not pay for every saved tree.
      */
     public static void load() {
+        if (loaded) {
+            return;
+        }
+        loaded = true;
         File source = file;
         if (source == null || !source.isFile()) {
             return;
@@ -58,7 +64,7 @@ public final class TreeStorage {
             int restored = 0;
             for (int i = 0; i < entries.tagCount(); i++) {
                 NBTTagCompound entry = entries.getCompoundTagAt(i);
-                ItemStack goal = ItemStack.loadItemStackFromNBT(entry.getCompoundTag("goal"));
+                ItemStack goal = readGoal(entry.getCompoundTag("goal"));
                 if (goal == null || goal.getItem() == null) {
                     // The item no longer exists, for example after a mod was removed
                     continue;
@@ -83,10 +89,34 @@ public final class TreeStorage {
     }
 
     /**
+     * Reads a goal written by this version or by the old numeric-id format.
+     */
+    private static ItemStack readGoal(NBTTagCompound goal) {
+        String name = goal.getString("name");
+        if (!name.isEmpty()) {
+            Object registered = Item.itemRegistry.getObject(name);
+            if (registered instanceof Item) {
+                ItemStack stack = new ItemStack(
+                    (Item) registered,
+                    Math.max(1, goal.getInteger("count")),
+                    goal.getInteger("damage"));
+                if (goal.hasKey("tag", NBT_COMPOUND)) {
+                    stack.setTagCompound(
+                        (NBTTagCompound) goal.getCompoundTag("tag")
+                            .copy());
+                }
+                return stack;
+            }
+        }
+        // Format v1 stored only the numeric id; keep reading old files
+        return ItemStack.loadItemStackFromNBT(goal);
+    }
+
+    /**
      * Writes the current tree list. Called whenever a tree is added, removed, or selected.
      */
     public static void save() {
-        if (loading) {
+        if (!loaded || loading) {
             return;
         }
         File target = file;
@@ -104,11 +134,26 @@ public final class TreeStorage {
                     || tree.goal.ingredient.getItem() == null) {
                     continue;
                 }
+                ItemStack ingredient = tree.goal.ingredient;
+                NBTTagCompound goal = new NBTTagCompound();
+                // Keep the numeric fields too, so a registry name that disappeared in a later
+                // session can still fall back to the old loader
+                ingredient.writeToNBT(goal);
+                String name = Item.itemRegistry.getNameForObject(ingredient.getItem());
+                if (name != null) {
+                    goal.setString("name", name);
+                }
+                goal.setInteger("count", Math.max(1, ingredient.stackSize));
+                goal.setInteger("damage", ingredient.getItemDamage());
+                if (ingredient.getTagCompound() != null) {
+                    goal.setTag(
+                        "tag",
+                        ingredient.getTagCompound()
+                            .copy());
+                }
+
                 NBTTagCompound entry = new NBTTagCompound();
-                entry.setTag(
-                    "goal",
-                    tree.goal.ingredient.copy()
-                        .writeToNBT(new NBTTagCompound()));
+                entry.setTag("goal", goal);
                 entry.setLong("batches", Math.max(1L, tree.batches));
                 entries.appendTag(entry);
             }
