@@ -79,6 +79,8 @@ minecraft/screenshots/recipe_trees/
 
 图片导出使用离屏 FBO 渲染，不依赖当前窗口大小，也不会污染当前 GUI 的缩放与偏移状态。
 
+导出完成后会直接用系统默认图片查看器打开该 PNG（调不起来时回退为打开所在文件夹并选中该文件），不再往聊天栏里输出图片路径。
+
 ### 开发与构建
 
 在项目目录中执行：
@@ -96,6 +98,7 @@ cd NEI-RecipeTree
 - `src/main/java/moe/takochan/neirecipetree/gui`：树布局、渲染、交互、高亮、导出图片
 - `src/main/java/moe/takochan/neirecipetree/nei`：NEI 按钮注入、NEI 配方页联动
 - `src/main/java/moe/takochan/neirecipetree/recipe`：NEI 配方引用与适配层
+- `src/main/java/moe/takochan/neirecipetree/util`：系统级辅助，例如导出后调起系统图片查看器
 - `src/main/resources/assets/neirecipetree`：语言文件、GUI 纹理等资源
 
 ### 致谢
@@ -178,6 +181,8 @@ minecraft/screenshots/recipe_trees/
 
 Image export uses off-screen FBO rendering, so it does not depend on the current window size and does not mutate the active GUI zoom or pan state.
 
+Once the PNG is written it is opened with the system's default image viewer (falling back to opening the containing folder with the file selected), so the path is no longer printed into chat.
+
 ### Development and Build
 
 Run from the project directory:
@@ -195,6 +200,7 @@ cd NEI-RecipeTree
 - `src/main/java/moe/takochan/neirecipetree/gui`: tree layout, rendering, interaction, highlighting, image export
 - `src/main/java/moe/takochan/neirecipetree/nei`: NEI button injection and recipe-screen integration
 - `src/main/java/moe/takochan/neirecipetree/recipe`: NEI recipe references and adapters
+- `src/main/java/moe/takochan/neirecipetree/util`: system helpers, e.g. handing the exported image to the OS
 - `src/main/resources/assets/neirecipetree`: language files, GUI textures, and other resources
 
 ### Credits

@@ -45,6 +45,7 @@ import moe.takochan.neirecipetree.bom.MaterialNode;
 import moe.takochan.neirecipetree.recipe.ItemStackKey;
 import moe.takochan.neirecipetree.recipe.NEIRecipeRef;
 import moe.takochan.neirecipetree.recipe.RecipeLookup;
+import moe.takochan.neirecipetree.util.SystemFileOpener;
 
 public class GuiRecipeTree extends GuiScreen {
 
@@ -1151,11 +1152,16 @@ public class GuiRecipeTree extends GuiScreen {
             String timestamp = new java.text.SimpleDateFormat("yyyy-MM-dd_HH.mm.ss").format(new java.util.Date());
             File outputFile = new File(screenshotsDir, "recipe_tree_" + timestamp + ".png");
             ImageIO.write(image, "png", outputFile);
+            LOG.info("Saved recipe tree image to {}", outputFile.getAbsolutePath());
 
-            mc.ingameGUI.getChatGUI()
-                .printChatMessage(
-                    new net.minecraft.util.ChatComponentText(
-                        "\u00a7a[RecipeTree] Saved to screenshots/recipe_trees/" + outputFile.getName()));
+            // Hand the file to the system instead of printing its location in chat; only fall back
+            // to a chat hint when no handler could be started at all.
+            if (!SystemFileOpener.openOrReveal(outputFile)) {
+                mc.ingameGUI.getChatGUI()
+                    .printChatMessage(
+                        new net.minecraft.util.ChatComponentText(
+                            "\u00a7a[RecipeTree] Saved to screenshots/recipe_trees/" + outputFile.getName()));
+            }
         } catch (Exception e) {
             LOG.error("Failed to export recipe tree to image", e);
             mc.ingameGUI.getChatGUI()
