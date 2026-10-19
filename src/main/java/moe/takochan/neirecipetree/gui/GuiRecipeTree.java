@@ -17,6 +17,7 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
@@ -25,6 +26,7 @@ import net.minecraft.util.StatCollector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
@@ -196,6 +198,7 @@ public class GuiRecipeTree extends GuiScreen {
         // Layout costs centered horizontally, sized by the actual rendered text
         int costY = sectionBaseY + 15;
         costs.addAll(tempCosts);
+        sortCostEntries(costs);
         int maxCostWidth = Math.max(240, (int) (width / getScale()) - 2 * COST_SIDE_MARGIN);
         int costRows = layoutCostEntries(costs, costY, maxCostWidth);
         remainderHeaderY = costY + Math.max(1, costRows) * COST_ROW_HEIGHT + 8;
@@ -210,7 +213,42 @@ public class GuiRecipeTree extends GuiScreen {
         }
 
         remainderEntries.addAll(tempRems);
+        sortCostEntries(remainderEntries);
         layoutCostEntries(remainderEntries, remainderHeaderY + 12, maxCostWidth);
+    }
+
+    /**
+     * Orders the material list by item id, then damage, instead of following the hash order of the
+     * cost maps. Fluids always go to the end so item rows stay grouped together. Equal id/damage
+     * entries fall back to amount and name to keep the row order stable between recalculations.
+     */
+    private void sortCostEntries(List<CostEntry> entries) {
+        entries.sort((a, b) -> {
+            if (a.fluid != b.fluid) {
+                return a.fluid ? 1 : -1;
+            }
+
+            int byId = Integer.compare(Item.getIdFromItem(a.stack.getItem()), Item.getIdFromItem(b.stack.getItem()));
+            if (byId != 0) {
+                return byId;
+            }
+
+            int byDamage = Integer.compare(a.stack.getItemDamage(), b.stack.getItemDamage());
+            if (byDamage != 0) {
+                return byDamage;
+            }
+
+            int byAmount = Long.compare(b.amount, a.amount);
+            if (byAmount != 0) {
+                return byAmount;
+            }
+            return String.CASE_INSENSITIVE_ORDER.compare(getCostSortName(a.stack), getCostSortName(b.stack));
+        });
+    }
+
+    private String getCostSortName(ItemStack stack) {
+        String name = stack.getDisplayName();
+        return name == null ? "" : EnumChatFormatting.getTextWithoutFormattingCodes(name);
     }
 
     private static final int COST_ICON_WIDTH = 16;
@@ -1075,7 +1113,12 @@ public class GuiRecipeTree extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
-        if (keyCode == 1) { // ESC
+        if (keyCode == Keyboard.KEY_ESCAPE) {
+            // ESC closes the tree screen and returns to the game; E goes back to the parent GUI.
+            BoM.pendingResolution = null;
+            mc.displayGuiScreen(null);
+            mc.setIngameFocus();
+        } else if (keyCode == Keyboard.KEY_E) {
             BoM.pendingResolution = null;
             mc.displayGuiScreen(parentScreen);
         } else if (keyCode == 211) { // DELETE key
@@ -1482,6 +1525,7 @@ public class GuiRecipeTree extends GuiScreen {
         public final ItemStack stack;
         public final long amount;
         public final boolean chanced;
+        public final boolean fluid;
         public int x;
         public int y;
         public int width;
@@ -1492,6 +1536,7 @@ public class GuiRecipeTree extends GuiScreen {
             this.stack = stack;
             this.amount = amount;
             this.chanced = chanced;
+            this.fluid = FluidStacks.isFluid(stack);
         }
     }
 }
