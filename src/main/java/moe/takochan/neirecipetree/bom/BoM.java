@@ -52,6 +52,7 @@ public class BoM {
         trees.add(created);
         tree = created;
         craftingMode = false;
+        TreeStorage.save();
         return created;
     }
 
@@ -69,6 +70,7 @@ public class BoM {
         trees.add(created);
         tree = created;
         craftingMode = false;
+        TreeStorage.save();
         return created;
     }
 
@@ -80,6 +82,7 @@ public class BoM {
         tree = target;
         craftingMode = false;
         recalculate();
+        TreeStorage.save();
     }
 
     /** Drops {@code target} and selects a neighbouring tree when it was the active one. */
@@ -90,12 +93,14 @@ public class BoM {
         }
         trees.remove(index);
         if (tree != target) {
+            TreeStorage.save();
             return;
         }
         tree = null;
         if (!trees.isEmpty()) {
             activate(trees.get(Math.min(index, trees.size() - 1)));
         }
+        TreeStorage.save();
     }
 
     private static MaterialTree findTreeFor(NEIRecipeRef recipe) {
@@ -306,5 +311,6 @@ public class BoM {
         craftingMode = false;
         pendingResolution = null;
         RecipeLookup.clearCache();
+        TreeStorage.save();
     }
 }

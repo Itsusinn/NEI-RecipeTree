@@ -43,12 +43,22 @@ public class MaterialTree {
      * several candidate recipes, so the player picks one from the tree as usual.
      */
     public MaterialTree(ItemStack goalStack) {
+        this(goalStack, true);
+    }
+
+    /**
+     * @param calculate whether to resolve the recipe chain immediately. Restored trees pass
+     *                  {@code false} and are calculated when the player opens them.
+     */
+    public MaterialTree(ItemStack goalStack, boolean calculate) {
         ItemStack goalItem = goalStack.copy();
         if (goalItem.getItem() == null) {
             throw new IllegalArgumentException("Goal stack has no item");
         }
         goal = new MaterialNode(goalItem);
-        recalculate();
+        if (calculate) {
+            recalculate();
+        }
     }
 
     public NEIRecipeRef getRecipe(ItemStack stack) {

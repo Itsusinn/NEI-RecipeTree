@@ -25,7 +25,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 ### 主要功能
 
 - 在 NEI 配方界面直接打开当前物品的合成树
-- 背包界面按钮打开合成树列表，可切换 / 新建 / 删除多棵合成树
+- 背包界面按钮打开合成树列表，可切换 / 新建 / 删除多棵合成树；已打开的树会保存到磁盘，重启游戏后自动恢复
 - 对同一产物在多种候选配方之间切换，并将选择回写到整棵树
 - 同一配方槽位存在多个可替换物品时，自动选用可分解的那个，并支持手动切换；手动选择会被记住，同一槽位在其它配方与下次启动时自动沿用
 - 递归展开材料需求，汇总总材料成本
@@ -44,6 +44,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - **可替换物品（多候选槽位）**：NEI 在 `PositionedStack.items` 中给出槽位的全部候选物品，旧实现只取第一项。当第一项本身没有配方时，节点会误判为原材料；现在会自动回退到可分解的候选，并支持手动切换（见上方“主要功能”）。
 - **液体需求量合并**：GT 把液体体积写在展示物的 NBT 里（`mFluidDisplayAmount`），物品堆叠数恒为 1，所以同一液体在不同配方中的需求会被当成不同物品、在总材料成本里各占一行。现在按 `StackInfo#getFluid` 读出体积并以 mB 参与计算，统计时用“去掉体积后的展示物”作为聚合键，同一液体只保留一行、体积累加（显示为 `3000L`）。
 - **液体数量标签不再重叠**：GT 的流体展示物会在图标内再绘制一遍 NBT 里的体积，而树本身也会绘制节点数量和总成本数量，两串数字会叠在同一个图标上。现在树内绘制带数量标签的物品时会给展示物加上 `mHideStackSize`，隐藏 GT 的内置体积文字，只显示按当前批次算出的数量。
+- **重启后保留合成树**：合成树列表原先只存在内存里，重启后列表为空，背包按钮也随之隐藏。现在每棵树的产物与批次会写入 `config/neirecipetree_trees.dat`，启动时恢复列表；配方链在真正打开树时再向 NEI 解析，避免拖慢启动。背包按钮也改为常驻，列表为空时仍可从光标或背包里最后悬停的物品新建一棵树。
 
 ### 使用方式
 
@@ -56,14 +57,14 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - 在 NEI 配方页点击 `选择此配方`
 - 或者进入合成树后，对节点使用左键浏览并切换配方
 
-合成树一旦建立，打开背包界面时物品栏左侧会出现一个按钮（图标是当前选中树的产物），点击进入**合成树列表**：
+合成树一旦建立，打开背包界面时左下角（快捷栏左侧）会出现一个按钮（图标是当前选中树的产物），点击进入**合成树列表**：
 
 - 左键点击条目：切换并打开该树
 - 右侧 `X`：删除该树
 - `新建`：用光标上拿着的物品新建一棵树（没有手持物品时按钮置灰）
 - 滚动滚轮：条目超过 7 个时翻页
 
-列表为空时按钮不显示。NEI 配方页的 `T` 按钮会追加一棵树而不是替换当前树；已存在完全相同目标的树时直接切换过去。
+列表为空时按钮仍然显示，方便直接新建；已打开的树保存在 `config/neirecipetree_trees.dat`，重启游戏后按钮和树列表都会恢复。NEI 配方页的 `T` 按钮会追加一棵树而不是替换当前树；已存在完全相同目标的树时直接切换过去。
 
 #### 2. 界面操作
 
@@ -140,7 +141,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 ### Features
 
 - Open a full recipe tree directly from an NEI recipe page
-- A button in the player inventory jumps straight back into the tree you were browsing
+- A button in the player inventory jumps straight back into the tree you were browsing; opened trees are saved to disk and restored after a restart
 - Switch between multiple valid recipes for the same output and apply the selection back into the tree
 - Recipe slots that accept several substitutable items fall back to a decomposable one and can be switched manually; picks are remembered and reused by other recipes and later sessions
 - Recursively expand ingredient requirements and calculate total material cost
@@ -159,6 +160,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 - **Substitutable items (multi-candidate slots)**: NEI reports every candidate of a slot in `PositionedStack.items`, but the tree used to keep only the first entry, so a slot whose first candidate has no recipe was mistaken for a raw material. The tree now falls back to a decomposable candidate and lets you switch between them (see *Features*).
 - **Fluid requirement merging**: GT stores a fluid's volume in the display item's NBT (`mFluidDisplayAmount`) while the stack size stays `1`, so the same fluid requested by different recipes looked like different items and took one row each in the total cost. The volume is now read through `StackInfo#getFluid` and counted in mB, and costs aggregate on the display item with the volume removed, so a fluid keeps a single row and its volumes add up (rendered as `3000L`).
 - **Fluid amount labels no longer overlap**: GT's fluid display item paints the NBT volume inside its icon as well, so the tree's own node and total-cost amounts ended up stacked on top of it. Items drawn with an amount now get `mHideStackSize` on the display copy, which suppresses GT's built-in volume text and leaves only the amount calculated for the current batch.
+- **Recipe trees survive a restart**: the tree list used to live only in memory, so after a restart the list was empty and the inventory button hid itself. Each tree's goal and batch size are now written to `config/neirecipetree_trees.dat` and restored at startup; the recipe chain is resolved through NEI only when the tree is opened, so startup does not pay for every saved tree. The inventory button is always visible as well, and an empty list can still start a tree from the held item or the last item hovered in the inventory.
 
 ### Usage
 
@@ -171,14 +173,14 @@ If an item has multiple valid recipes, you can either:
 - click `Select this recipe` in the NEI recipe page
 - or left-click the node inside the tree to browse and switch recipes
 
-Once a tree exists, opening your inventory shows a button left of the item panel (its icon is the goal of the selected tree) that opens the **tree list**:
+Once a tree exists, opening your inventory shows a button at the bottom-left (left of the hotbar, its icon is the selected tree's goal) that opens the **tree list**:
 
 - left-click a row to switch to and open that tree
 - the `X` on the right deletes that tree
 - `New` creates a tree from the item held on the cursor (greyed out when the cursor is empty)
 - the mouse wheel pages through the list when there are more than 7 trees
 
-The button stays hidden while the list is empty. The `T` button on an NEI recipe page appends a tree instead of replacing the current one, and switches to an identical tree that is already open.
+The button stays visible even when the list is empty, so a tree can always be started; opened trees are stored in `config/neirecipetree_trees.dat` and both the button and the list come back after a restart. The `T` button on an NEI recipe page appends a tree instead of replacing the current one, and switches to an identical tree that is already open.
 
 #### 2. Controls
 
