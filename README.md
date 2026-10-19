@@ -32,7 +32,8 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - 总材料成本与副产物优先按物品 ID、损伤值排序，流体始终排在最后，列表不会随哈希顺序跳动
 - 液体按体积（`L` / mB）统计，同一液体的多处需求合并为一行
 - 支持折叠 / 展开节点，保留用户手动选择的分解路径
-- 右上角快捷导出：
+- 右上角快捷操作：
+  - 返回合成树列表
   - 导出到 NEI 收藏夹
   - 导出为 PNG 图片
 - 批次面板支持快速调整数量并自动推荐合适批次
@@ -80,7 +81,8 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 | `Shift + 右键` | 清除当前节点的配方选择 |
 | `Del` | 重置整棵树 |
 | `Esc` | 直接关闭配方树界面，返回游戏 |
-| `E` | 返回打开配方树前的选择页面 |
+| `E` | 直接关闭配方树界面，返回游戏 |
+| `右上角列表按钮` | 返回合成树列表 |
 | `鼠标后退键` | 返回合成树列表 |
 | `Shift + Del` | 关闭界面 |
 | `滚轮（批次面板）` | 数量 `±1` |
@@ -155,6 +157,7 @@ The goal is not to replace NEI, but to add one more layer on top of the existing
 - Fluids are counted by volume (`L` / mB) and every request for the same fluid is merged into one row
 - Collapse / expand nodes while preserving manual recipe choices
 - Quick actions in the top-right corner:
+  - return to the tree list
   - export to NEI bookmarks
   - export to PNG image
 - Batch panel for fast quantity changes and ideal-batch selection
@@ -202,7 +205,8 @@ The button stays visible even when the list is empty, so a tree can always be st
 | `Shift + RMB` | Clear the current node's recipe selection |
 | `Del` | Reset the entire tree |
 | `Esc` | Close the recipe tree screen and return to the game |
-| `E` | Return to the selection screen the tree was opened from |
+| `E` | Close the recipe tree screen and return to the game |
+| `List button (top right)` | Return to the tree list |
 | `Mouse back` | Return to the tree list |
 | `Shift + Del` | Close the screen |
 | `Mouse wheel (batch panel)` | Change amount by `±1` |

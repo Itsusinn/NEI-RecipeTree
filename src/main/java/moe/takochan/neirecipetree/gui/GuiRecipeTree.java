@@ -78,7 +78,7 @@ public class GuiRecipeTree extends GuiScreen {
     private static final int ACTION_BUTTON_SIZE = 18;
     private static final int ACTION_BUTTON_GAP = 4;
     private static final int ACTION_BUTTON_MARGIN = 4;
-    private static final float BUTTON_TEXTURE_WIDTH = 36.0F;
+    private static final float BUTTON_TEXTURE_WIDTH = 54.0F;
     private static final float BUTTON_TEXTURE_HEIGHT = 18.0F;
     private static final int BATCH_PANEL_WIDTH = 92;
     private static final int BATCH_PANEL_HEIGHT = 24;
@@ -110,6 +110,8 @@ public class GuiRecipeTree extends GuiScreen {
     private GuiRecipeTreeButton exportButton;
     // Export to image button
     private GuiRecipeTreeButton exportImageButton;
+    // Return to the tree selector
+    private GuiRecipeTreeButton selectorButton;
 
     private enum HoverArea {
 
@@ -154,6 +156,16 @@ public class GuiRecipeTree extends GuiScreen {
 
         buttonList.add(exportButton);
         buttonList.add(exportImageButton);
+
+        int selectorButtonX = imgButtonX - ACTION_BUTTON_GAP - ACTION_BUTTON_SIZE;
+        selectorButton = new GuiRecipeTreeButton(
+            selectorButtonX,
+            buttonY,
+            ButtonIcon.SELECTOR,
+            "neirecipetree.button.selector",
+            "neirecipetree.button.selector.tooltip",
+            this::returnToSelector);
+        buttonList.add(selectorButton);
     }
 
     private void recalculateTree() {
@@ -383,6 +395,9 @@ public class GuiRecipeTree extends GuiScreen {
         }
         if (exportImageButton != null && exportImageButton.isMouseOver(mouseX, mouseY)) {
             return exportImageButton;
+        }
+        if (selectorButton != null && selectorButton.isMouseOver(mouseX, mouseY)) {
+            return selectorButton;
         }
         return null;
     }
@@ -999,6 +1014,9 @@ public class GuiRecipeTree extends GuiScreen {
         if (exportImageButton != null && exportImageButton.mousePressed(mc, mouseX, mouseY)) {
             return;
         }
+        if (selectorButton != null && selectorButton.mousePressed(mc, mouseX, mouseY)) {
+            return;
+        }
 
         if (hoveredNode != null) {
             MaterialNode mn = hoveredNode.materialNode;
@@ -1119,14 +1137,12 @@ public class GuiRecipeTree extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
-        if (keyCode == Keyboard.KEY_ESCAPE) {
-            // ESC closes the tree screen and returns to the game; E goes back to the parent GUI.
+        if (keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_E) {
+            // Esc and E both close the tree screen; the selector has its own action button.
             BoM.pendingResolution = null;
             TreeStorage.setLastView(TreeStorage.View.TREE);
             mc.displayGuiScreen(null);
             mc.setIngameFocus();
-        } else if (keyCode == Keyboard.KEY_E) {
-            returnToSelector();
         } else if (keyCode == 211) { // DELETE key
             if (isShiftKeyDown()) {
                 // Shift+Delete: drop this tree from the manager and close
@@ -1415,7 +1431,8 @@ public class GuiRecipeTree extends GuiScreen {
     private enum ButtonIcon {
 
         BOOKMARK,
-        EXPORT_IMAGE
+        EXPORT_IMAGE,
+        SELECTOR
     }
 
     public static class GuiRecipeTreeButton extends codechicken.nei.GuiNEIButton {
@@ -1472,7 +1489,8 @@ public class GuiRecipeTree extends GuiScreen {
         }
 
         private void drawIcon(net.minecraft.client.Minecraft mc, boolean hovered) {
-            int iconU = icon == ButtonIcon.BOOKMARK ? 0 : ACTION_BUTTON_SIZE;
+            int iconU = icon == ButtonIcon.BOOKMARK ? 0
+                : icon == ButtonIcon.EXPORT_IMAGE ? ACTION_BUTTON_SIZE : ACTION_BUTTON_SIZE * 2;
             mc.getTextureManager()
                 .bindTexture(BUTTON_ICONS_TEXTURE);
             GL11.glEnable(GL11.GL_BLEND);
