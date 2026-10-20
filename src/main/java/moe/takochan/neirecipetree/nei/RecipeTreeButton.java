@@ -36,7 +36,7 @@ public class RecipeTreeButton extends GuiRecipeButton {
     public void mouseReleased(int mouseX, int mouseY) {
         try {
             NEIRecipeRef recipeRef = new NEIRecipeRef(handlerRef.handler, handlerRef.recipeIndex);
-            BoM.setGoal(recipeRef);
+            BoM.createTree(recipeRef);
             Minecraft mc = Minecraft.getMinecraft();
             mc.displayGuiScreen(new GuiRecipeTree(mc.currentScreen));
         } catch (Exception e) {

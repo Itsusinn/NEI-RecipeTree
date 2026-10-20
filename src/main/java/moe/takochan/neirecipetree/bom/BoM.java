@@ -59,6 +59,20 @@ public class BoM {
     }
 
     /**
+     * Adds a tree for {@code recipe}, even when another tree already uses the same recipe. The NEI
+     * {@code T} button uses this so it always opens a fresh tree.
+     */
+    public static MaterialTree createTree(NEIRecipeRef recipe) {
+        TreeStorage.load();
+        MaterialTree created = new MaterialTree(recipe);
+        trees.add(created);
+        tree = created;
+        craftingMode = false;
+        TreeStorage.save();
+        return created;
+    }
+
+    /**
      * Adds a tree rooted at {@code goal} even when another tree already targets the same item. The
      * inventory manager's "New" action uses this so pressing it never just switches to an older
      * tree with the same goal.
