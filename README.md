@@ -66,7 +66,7 @@ NEI-RecipeTree is a recipe tree / bill of materials viewer for `NotEnoughItems` 
 - 鼠标前进键：打开当前合成树
 - 鼠标后退键：关闭列表
 - 右侧 `X`：删除该树
-- `新建`：用光标上拿着的物品新建一棵树（没有手持物品时按钮置灰）
+- `新建`：用光标上拿着的物品、背包里悬停的物品或当前手持物品新建一棵树；即使相同产物已有树也会新建，而不是切换到旧树（没有可用物品时按钮置灰）
 - 滚动滚轮：条目超过 7 个时翻页
 
 列表为空时按钮仍然显示，方便直接新建；已打开的树和上次关闭的界面状态保存在 `config/neirecipetree_trees.dat`，重启游戏后按钮会继续打开当时的合成树或列表。NEI 配方页的 `T` 按钮会追加一棵树而不是替换当前树；已存在完全相同目标的树时直接切换过去。
@@ -194,7 +194,7 @@ Once a tree exists, opening your inventory shows a button at the bottom-left (le
 - mouse forward button opens the active tree
 - mouse back button closes the list
 - the `X` on the right deletes that tree
-- `New` creates a tree from the item held on the cursor (greyed out when the cursor is empty)
+- `New` creates a tree from the item on the cursor, an item hovered in the inventory, or the held hotbar item. It always creates a new tree, even when the same output already has one (greyed out when no item is available)
 - the mouse wheel pages through the list when there are more than 7 trees
 
 The button stays visible even when the list is empty, so a tree can always be started; opened trees and the last closed view are stored in `config/neirecipetree_trees.dat`, so after a restart the button still reopens that tree or the list. The `T` button on an NEI recipe page appends a tree instead of replacing the current one, and switches to an identical tree that is already open.

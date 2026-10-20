@@ -200,7 +200,7 @@ public class GuiTreeManager extends GuiScreen {
         if (isInside(mouseX, mouseY, newButtonX, newButtonY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
             ItemStack goal = newTreeGoal();
             if (goal != null) {
-                BoM.setGoal(goal);
+                BoM.createTree(goal);
                 if (BoM.tree != null) {
                     mc.displayGuiScreen(new GuiRecipeTree(this));
                 }
@@ -294,8 +294,8 @@ public class GuiTreeManager extends GuiScreen {
     }
 
     /**
-     * Goal for a new tree: the held item, or else the item the player last hovered in the
-     * inventory, which is how the manager is usually reached.
+     * Goal for a new tree: the item on the cursor, the item last hovered in the inventory, or the
+     * item in the current hotbar slot.
      */
     private ItemStack newTreeGoal() {
         ItemStack cursor = cursorGoal();
@@ -303,7 +303,16 @@ public class GuiTreeManager extends GuiScreen {
             return cursor;
         }
         ItemStack hovered = hoveredInventoryGoal;
-        return hovered != null && hovered.getItem() != null ? hovered.copy() : null;
+        if (hovered != null && hovered.getItem() != null) {
+            return hovered.copy();
+        }
+        if (mc.thePlayer != null) {
+            ItemStack held = mc.thePlayer.getHeldItem();
+            if (held != null && held.getItem() != null) {
+                return held.copy();
+            }
+        }
+        return null;
     }
 
     private static boolean isInside(int mouseX, int mouseY, int x, int y, int width, int height) {

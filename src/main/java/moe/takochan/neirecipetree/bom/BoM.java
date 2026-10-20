@@ -59,6 +59,21 @@ public class BoM {
     }
 
     /**
+     * Adds a tree rooted at {@code goal} even when another tree already targets the same item. The
+     * inventory manager's "New" action uses this so pressing it never just switches to an older
+     * tree with the same goal.
+     */
+    public static MaterialTree createTree(ItemStack goal) {
+        TreeStorage.load();
+        MaterialTree created = new MaterialTree(goal);
+        trees.add(created);
+        tree = created;
+        craftingMode = false;
+        TreeStorage.save();
+        return created;
+    }
+
+    /**
      * Adds a tree rooted at {@code goal} (or reuses the one already open for that item) and selects
      * it.
      */
